@@ -1,0 +1,7 @@
+name: Ares
+description: Tournament plugin
+author: Moros
+version: ${pluginVersion}
+main: me.moros.ares.Ares
+softdepend: [ProjectKorra]
+api-version: 1.16
