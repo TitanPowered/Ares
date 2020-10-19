@@ -19,10 +19,11 @@
 
 package me.moros.ares;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import me.moros.ares.model.Tournament;
 import me.moros.atlas.checker.checker.nullness.qual.NonNull;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,12 +35,20 @@ public final class TournamentManager {
 		tournaments = new ConcurrentHashMap<>();
 	}
 
+	public int getTournamentCount() {
+		return tournaments.size();
+	}
+
 	public Optional<Tournament> getTournament(@NonNull String name) {
 		return Optional.ofNullable(tournaments.get(name.toLowerCase()));
 	}
 
-	public @NonNull Map<@NonNull String, @NonNull Tournament> getTournaments() {
-		return ImmutableMap.copyOf(tournaments);
+	public @NonNull Collection<@NonNull String> getTournamentNames() {
+		return ImmutableSet.copyOf(tournaments.keySet());
+	}
+
+	public @NonNull Collection<@NonNull Tournament> getTournaments() {
+		return ImmutableSet.copyOf(tournaments.values());
 	}
 
 	public void createTournament(@NonNull Tournament tournament) {

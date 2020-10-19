@@ -31,14 +31,14 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class PlayerWrapper implements Participant {
+public class ParticipantImpl implements Participant {
 	private final Map<Player, Audience> players;
 
-	public PlayerWrapper(@NonNull Player player) {
+	private ParticipantImpl(@NonNull Player player) {
 		this.players = Collections.singletonMap(player, Ares.getAudiences().player(player));
 	}
 
-	public PlayerWrapper(@NonNull Collection<@NonNull Player> players) {
+	private ParticipantImpl(@NonNull Collection<@NonNull Player> players) {
 		this.players = players.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> Ares.getAudiences().player(p)));
 	}
 
@@ -50,5 +50,13 @@ public class PlayerWrapper implements Participant {
 	@Override
 	public @NonNull Iterable<? extends Audience> audiences() {
 		return ImmutableSet.copyOf(players.values());
+	}
+
+	public static @NonNull Participant of(@NonNull Player player) {
+		return player.isOnline() ? new ParticipantImpl(player) : Participant.dummy();
+	}
+
+	public static @NonNull Participant of(@NonNull Collection<@NonNull Player> players) {
+		return players.isEmpty() ? Participant.dummy() : new ParticipantImpl(players);
 	}
 }

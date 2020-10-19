@@ -28,12 +28,6 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface Participant extends ForwardingAudience {
-	static @NonNull Participant dummy(){
-		return DummyParticipant.INSTANCE;
-	}
-
-	@NonNull Collection<@NonNull Player> getPlayers();
-
 	default boolean hasPlayer(@NonNull Player player) {
 		return getPlayers().contains(player);
 	}
@@ -46,5 +40,11 @@ public interface Participant extends ForwardingAudience {
 		if (this.equals(other)) return Optional.empty();
 		if (!isValid() || !other.isValid()) return Optional.empty();
 		return Optional.of(new Battle(Arrays.asList(this, other)));
+	}
+
+	@NonNull Collection<@NonNull Player> getPlayers();
+
+	static @NonNull Participant dummy() {
+		return DummyParticipant.INSTANCE;
 	}
 }

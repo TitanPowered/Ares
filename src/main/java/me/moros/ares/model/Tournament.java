@@ -20,11 +20,16 @@
 package me.moros.ares.model;
 
 import me.moros.atlas.checker.checker.nullness.qual.NonNull;
+import me.moros.atlas.kyori.adventure.text.Component;
 
 import java.util.Collection;
 
 public interface Tournament {
 	@NonNull String getName();
+
+	@NonNull Component getDisplayName();
+
+	boolean isOpen();
 
 	void start();
 

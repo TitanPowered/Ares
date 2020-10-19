@@ -19,6 +19,8 @@
 
 package me.moros.ares;
 
+import me.moros.ares.command.Commands;
+import me.moros.atlas.acf.PaperCommandManager;
 import me.moros.atlas.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -27,6 +29,7 @@ import java.util.logging.Logger;
 public class Ares extends JavaPlugin {
 	private static Ares plugin;
 
+	private PaperCommandManager commandManager;
 	private TournamentManager manager;
 	private BukkitAudiences audiences;
 	private Logger log;
@@ -38,10 +41,19 @@ public class Ares extends JavaPlugin {
 		log = getLogger();
 
 		manager = new TournamentManager();
+
+		commandManager = new PaperCommandManager(this);
+		commandManager.enableUnstableAPI("help");
+
+		Commands.init();
 	}
 
 	@Override
 	public void onDisable() {
+	}
+
+	public static PaperCommandManager getCommandManager() {
+		return plugin.commandManager;
 	}
 
 	public static TournamentManager getManager() {
