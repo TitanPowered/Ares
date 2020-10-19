@@ -19,39 +19,36 @@
 
 package me.moros.ares.model;
 
+import com.google.common.collect.ImmutableSet;
+import me.moros.ares.Ares;
 import me.moros.atlas.checker.checker.nullness.qual.NonNull;
 import me.moros.atlas.kyori.adventure.audience.Audience;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Optional;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-final class DummyParticipant implements Participant {
-	static final DummyParticipant INSTANCE = new DummyParticipant();
+public class PlayerWrapper implements Participant {
+	private final Map<Player, Audience> players;
+
+	public PlayerWrapper(@NonNull Player player) {
+		this.players = Collections.singletonMap(player, Ares.getAudiences().player(player));
+	}
+
+	public PlayerWrapper(@NonNull Collection<@NonNull Player> players) {
+		this.players = players.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> Ares.getAudiences().player(p)));
+	}
 
 	@Override
 	public @NonNull Collection<@NonNull Player> getPlayers() {
-		return Collections.emptyList();
-	}
-
-	@Override
-	public boolean hasPlayer(@NonNull Player player) {
-		return false;
-	}
-
-	@Override
-	public boolean isValid() {
-		return false;
-	}
-
-	@Override
-	public Optional<Battle> matchWith(@NonNull Participant other) {
-		return Optional.empty();
+		return ImmutableSet.copyOf(players.keySet());
 	}
 
 	@Override
 	public @NonNull Iterable<? extends Audience> audiences() {
-		return Collections.emptyList();
+		return ImmutableSet.copyOf(players.values());
 	}
 }

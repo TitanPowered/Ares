@@ -40,5 +40,7 @@ public interface Tournament {
 
 	@NonNull Collection<@NonNull Participant> getParticipants();
 
+	boolean addBattle(@NonNull Battle battle);
+
 	@NonNull Collection<@NonNull Battle> getCurrentBattles();
 }

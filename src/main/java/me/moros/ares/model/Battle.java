@@ -19,10 +19,45 @@
 
 package me.moros.ares.model;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import me.moros.atlas.checker.checker.nullness.qual.NonNull;
 
-public interface Battle {
-	void startBattle(@NonNull Battle battle);
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-	void stopBattle(@NonNull Battle battle);
+// TODO link to specific arena
+public class Battle {
+	private final Map<Participant, BattleScore> battleParties;
+
+	private boolean started = false;
+
+	Battle(@NonNull Collection<@NonNull Participant> battleParties) {
+		this(battleParties, BattleScore.ZERO);
+	}
+
+	Battle(@NonNull Collection<@NonNull Participant> battleParties, @NonNull BattleScore startingScore) {
+		this.battleParties = battleParties.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> startingScore));
+	}
+
+	public @NonNull Collection<@NonNull Participant> getParticipants() {
+		return ImmutableSet.copyOf(battleParties.keySet());
+	}
+
+	public @NonNull BattleScore getScore(@NonNull Participant participant) {
+		return battleParties.getOrDefault(participant, BattleScore.ZERO);
+	}
+
+	public boolean start() {
+		if (started) return false;
+		// TODO add preparation steps
+		return started = true;
+	}
+
+	public @NonNull Map<@NonNull Participant, @NonNull BattleScore> complete() {
+		// TODO cleanup after battle
+		return ImmutableMap.copyOf(battleParties);
+	}
 }

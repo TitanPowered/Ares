@@ -20,12 +20,15 @@
 package me.moros.ares.model;
 
 import me.moros.atlas.checker.checker.nullness.qual.NonNull;
+import me.moros.atlas.kyori.adventure.audience.ForwardingAudience;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 
-public interface Participant {
-	static @NonNull Participant dummy() {
+public interface Participant extends ForwardingAudience {
+	static @NonNull Participant dummy(){
 		return DummyParticipant.INSTANCE;
 	}
 
@@ -39,12 +42,9 @@ public interface Participant {
 		return getPlayers().stream().anyMatch(Player::isOnline);
 	}
 
-	interface Single extends Participant {
-		@NonNull Player getPlayer();
-
-		@Override
-		default boolean isValid() {
-			return getPlayer().isOnline();
-		}
+	default Optional<Battle> matchWith(@NonNull Participant other) { // TODO add support for multi party (free for all) matches
+		if (this.equals(other)) return Optional.empty();
+		if (!isValid() || !other.isValid()) return Optional.empty();
+		return Optional.of(new Battle(Arrays.asList(this, other)));
 	}
 }

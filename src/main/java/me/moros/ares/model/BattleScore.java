@@ -20,38 +20,25 @@
 package me.moros.ares.model;
 
 import me.moros.atlas.checker.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.audience.Audience;
-import org.bukkit.entity.Player;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
+public final class BattleScore {
+	public final static BattleScore ZERO = new BattleScore(0);
 
-final class DummyParticipant implements Participant {
-	static final DummyParticipant INSTANCE = new DummyParticipant();
+	private final int score;
 
-	@Override
-	public @NonNull Collection<@NonNull Player> getPlayers() {
-		return Collections.emptyList();
+	private BattleScore(int score) {
+		this.score = score;
 	}
 
-	@Override
-	public boolean hasPlayer(@NonNull Player player) {
-		return false;
+	public @NonNull BattleScore increment() {
+		return increment(1);
 	}
 
-	@Override
-	public boolean isValid() {
-		return false;
+	public @NonNull BattleScore increment(int value) {
+		return (value > 0) ? new BattleScore(score + value) : this;
 	}
 
-	@Override
-	public Optional<Battle> matchWith(@NonNull Participant other) {
-		return Optional.empty();
-	}
-
-	@Override
-	public @NonNull Iterable<? extends Audience> audiences() {
-		return Collections.emptyList();
+	public @NonNull BattleScore add(@NonNull BattleScore other) {
+		return (other.score > 0) ? new BattleScore(score + other.score) : this;
 	}
 }
