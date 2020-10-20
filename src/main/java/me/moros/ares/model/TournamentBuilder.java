@@ -21,6 +21,11 @@ package me.moros.ares.model;
 
 //TODO add options for amount of participants, modes, rules, score etc
 public class TournamentBuilder {
+	private int teamSize = 1;
+	private int teamAmount = 2;
+	private int rounds = 3;
+	private int scoreToWin = 3;
+	private long duration = 0;
 
 	public boolean isValid() {
 		// Validate tournament builder

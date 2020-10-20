@@ -6,16 +6,14 @@ plugins {
 group = "me.moros"
 version = "1.0.0"
 
-configure<JavaPluginConvention> {
+java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 repositories {
+    mavenLocal()
     maven("https://papermc.io/repo/repository/maven-public/")
-    flatDir {
-        dirs("libs")
-    }
 }
 
 dependencies {

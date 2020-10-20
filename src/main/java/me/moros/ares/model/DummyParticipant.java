@@ -27,8 +27,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 
-final class DummyParticipant implements Participant {
+public final class DummyParticipant implements Participant {
 	static final DummyParticipant INSTANCE = new DummyParticipant();
+
+	private DummyParticipant() {
+	}
 
 	@Override
 	public @NonNull Collection<@NonNull Player> getPlayers() {
