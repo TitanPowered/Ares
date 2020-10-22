@@ -21,7 +21,7 @@ package me.moros.ares.model;
 
 import com.google.common.collect.ImmutableSet;
 import me.moros.ares.Ares;
-import me.moros.atlas.checker.checker.nullness.qual.NonNull;
+import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 import me.moros.atlas.kyori.adventure.audience.Audience;
 import org.bukkit.entity.Player;
 

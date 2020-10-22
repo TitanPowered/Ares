@@ -21,7 +21,7 @@ package me.moros.ares;
 
 import com.google.common.collect.ImmutableSet;
 import me.moros.ares.model.Tournament;
-import me.moros.atlas.checker.checker.nullness.qual.NonNull;
+import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 
 import java.util.Collection;
 import java.util.Map;

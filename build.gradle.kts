@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("me.moros", "Atlas", "1.0.0-SNAPSHOT")
+    compileOnly("me.moros", "atlas-core", "1.0.0-SNAPSHOT")
     compileOnly("com.destroystokyo.paper", "paper-api", "1.16.3-R0.1-SNAPSHOT")
 }
 

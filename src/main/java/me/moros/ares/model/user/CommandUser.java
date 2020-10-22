@@ -20,7 +20,7 @@
 package me.moros.ares.model.user;
 
 import me.moros.ares.Ares;
-import me.moros.atlas.checker.checker.nullness.qual.NonNull;
+import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 import me.moros.atlas.kyori.adventure.audience.Audience;
 import me.moros.atlas.kyori.adventure.audience.ForwardingAudience;
 import org.bukkit.command.CommandSender;

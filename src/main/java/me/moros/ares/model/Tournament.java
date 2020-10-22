@@ -19,7 +19,7 @@
 
 package me.moros.ares.model;
 
-import me.moros.atlas.checker.checker.nullness.qual.NonNull;
+import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 import me.moros.atlas.kyori.adventure.text.Component;
 
 import java.util.Collection;
