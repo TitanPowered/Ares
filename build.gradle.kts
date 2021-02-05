@@ -1,6 +1,6 @@
 plugins {
     java
-    id("com.github.johnrengelman.shadow").version("6.0.0")
+    id("com.github.johnrengelman.shadow").version("6.1.0")
 }
 
 group = "me.moros"
@@ -13,12 +13,14 @@ java {
 
 repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://repo.aikar.co/content/groups/aikar/")
     maven("https://papermc.io/repo/repository/maven-public/")
 }
 
 dependencies {
     compileOnly("me.moros", "atlas-core", "1.0.0-SNAPSHOT")
-    compileOnly("com.destroystokyo.paper", "paper-api", "1.16.3-R0.1-SNAPSHOT")
+    compileOnly("me.moros", "bending", "1.0.0-SNAPSHOT")
+    compileOnly("com.destroystokyo.paper", "paper-api", "1.16.5-R0.1-SNAPSHOT")
 }
 
 tasks {

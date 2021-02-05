@@ -20,51 +20,68 @@
 package me.moros.ares;
 
 import me.moros.ares.command.Commands;
-import me.moros.atlas.acf.PaperCommandManager;
 import me.moros.atlas.kyori.adventure.platform.bukkit.BukkitAudiences;
+import me.moros.ares.locale.TranslationManager;
+import me.moros.storage.logging.Logger;
+import me.moros.storage.logging.Slf4jLogger;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Ares extends JavaPlugin {
 	private static Ares plugin;
 
-	private PaperCommandManager commandManager;
+	private Logger logger;
+
+	private TranslationManager translationManager;
 	private TournamentManager manager;
 	private BukkitAudiences audiences;
-	private Logger log;
+
+	private String author;
+	private String version;
 
 	@Override
 	public void onEnable() {
 		plugin = this;
-		audiences = BukkitAudiences.create(this);
-		log = getLogger();
+		logger = new Slf4jLogger(LoggerFactory.getLogger(getClass().getSimpleName()));
+		author = getDescription().getAuthors().get(0);
+		version = getDescription().getVersion();
 
+		translationManager = new TranslationManager(getConfigFolder());
+		audiences = BukkitAudiences.create(this);
 		manager = new TournamentManager();
 
-		commandManager = new PaperCommandManager(this);
-		commandManager.enableUnstableAPI("help");
-
-		Commands.init();
+		new Commands(this);
 	}
 
 	@Override
 	public void onDisable() {
 	}
 
-	public static PaperCommandManager getCommandManager() {
-		return plugin.commandManager;
-	}
-
 	public static TournamentManager getManager() {
 		return plugin.manager;
+	}
+
+	public static TranslationManager getTranslationManager() {
+		return plugin.translationManager;
 	}
 
 	public static BukkitAudiences getAudiences() {
 		return plugin.audiences;
 	}
 
+	public static String getAuthor() {
+		return plugin.author;
+	}
+
+	public static String getVersion() {
+		return plugin.version;
+	}
+
 	public static Logger getLog() {
-		return plugin.log;
+		return plugin.logger;
+	}
+
+	public static String getConfigFolder() {
+		return plugin.getDataFolder().toString();
 	}
 }

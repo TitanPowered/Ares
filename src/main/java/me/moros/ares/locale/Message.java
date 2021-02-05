@@ -24,6 +24,7 @@ import me.moros.atlas.kyori.adventure.text.Component;
 import me.moros.atlas.kyori.adventure.text.ComponentLike;
 
 import static me.moros.atlas.kyori.adventure.text.Component.text;
+import static me.moros.atlas.kyori.adventure.text.Component.translatable;
 import static me.moros.atlas.kyori.adventure.text.format.NamedTextColor.*;
 
 public interface Message {
@@ -31,16 +32,16 @@ public interface Message {
 		.append(text("Ares", GOLD))
 		.append(text("] ", DARK_GRAY));
 
-	Args0 HELP_HEADER = () -> brand(text("List of commands:", GOLD));
-	Args0 TOURNAMENT_LIST_HEADER = () -> text("List of active tournaments:", GOLD);
-	Args0 TOURNAMENT_LIST_EMPTY = () -> text("There are no active tournaments at the moment!", YELLOW);
+	Args0 HELP_HEADER = () -> brand(translatable("ares.command.help.header", GOLD));
+	Args0 TOURNAMENT_LIST_HEADER = () -> translatable("ares.command.tournament.list.header", GOLD);
+	Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list-empty", YELLOW);
 
-	Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> text("You have already joined tournament {tournament}", YELLOW)
-		.replaceFirstText("{tournament}", tournament);
-	Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> text("You have successfully joined tournament {tournament}", GREEN)
-		.replaceFirstText("{tournament}", tournament);
-	Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> text("You cannot join tournament {tournament}", RED)
-		.replaceFirstText("{tournament}", tournament);
+	Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join-started", YELLOW)
+		.args(tournament);
+	Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> translatable("ares.command.tournament.join-success", GREEN)
+		.args(tournament);
+	Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join-fail", RED)
+		.args(tournament);
 
 	static Component brand(ComponentLike message) {
 		return PREFIX.asComponent().append(message);

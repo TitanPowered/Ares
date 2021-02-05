@@ -27,24 +27,30 @@ import me.moros.atlas.acf.BukkitCommandExecutionContext;
 import me.moros.atlas.acf.CommandCompletions;
 import me.moros.atlas.acf.CommandContexts;
 import me.moros.atlas.acf.InvalidCommandArgument;
+import me.moros.atlas.acf.PaperCommandManager;
+import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 
 public class Commands {
-	public static void init() {
+	private final PaperCommandManager commandManager;
+
+	public Commands(@NonNull Ares plugin) {
+		commandManager = new PaperCommandManager(plugin);
+		commandManager.enableUnstableAPI("help");
+
 		registerCommandContexts();
 		registerCommandCompletions();
 
-		Ares.getCommandManager().getCommandReplacements().addReplacement("arescommand", "ares|tournament|tournaments");
-
-		Ares.getCommandManager().registerCommand(new AresCommand());
+		commandManager.getCommandReplacements().addReplacement("arescommand", "ares|tournament|tournaments|tourn");
+		commandManager.registerCommand(new AresCommand());
 	}
 
-	private static void registerCommandCompletions() {
-		CommandCompletions<BukkitCommandCompletionContext> commandCompletions = Ares.getCommandManager().getCommandCompletions();
+	private void registerCommandCompletions() {
+		CommandCompletions<BukkitCommandCompletionContext> commandCompletions = commandManager.getCommandCompletions();
 		commandCompletions.registerAsyncCompletion("tournaments", c -> Ares.getManager().getTournamentNames());
 	}
 
-	private static void registerCommandContexts() {
-		CommandContexts<BukkitCommandExecutionContext> commandContexts = Ares.getCommandManager().getCommandContexts();
+	private void registerCommandContexts() {
+		CommandContexts<BukkitCommandExecutionContext> commandContexts = commandManager.getCommandContexts();
 		commandContexts.registerIssuerOnlyContext(CommandUser.class, c -> new CommandUser(c.getSender()));
 
 		commandContexts.registerContext(Tournament.class, c -> {

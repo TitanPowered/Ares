@@ -22,7 +22,7 @@ package me.moros.ares.model;
 import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 
 public final class BattleScore {
-	public final static BattleScore ZERO = new BattleScore(0);
+	public static final BattleScore ZERO = new BattleScore(0);
 
 	private final int score;
 
@@ -40,5 +40,9 @@ public final class BattleScore {
 
 	public @NonNull BattleScore add(@NonNull BattleScore other) {
 		return (other.score > 0) ? new BattleScore(score + other.score) : this;
+	}
+
+	public int getScore() {
+		return score;
 	}
 }

@@ -1,7 +1,7 @@
 name: Ares
-description: Tournament plugin
+description: Plugin for managing bending duels, group fights and tournaments
 author: Moros
 version: ${pluginVersion}
 main: me.moros.ares.Ares
-softdepend: [ProjectKorra]
+softdepend: [ProjectKorra, Bending]
 api-version: 1.16

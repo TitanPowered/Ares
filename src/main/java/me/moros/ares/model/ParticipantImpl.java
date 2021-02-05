@@ -23,40 +23,42 @@ import com.google.common.collect.ImmutableSet;
 import me.moros.ares.Ares;
 import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 import me.moros.atlas.kyori.adventure.audience.Audience;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ParticipantImpl implements Participant {
-	private final Map<Player, Audience> players;
+	private final Map<LivingEntity, Audience> members;
 
-	private ParticipantImpl(@NonNull Player player) {
-		this.players = Collections.singletonMap(player, Ares.getAudiences().player(player));
+	private ParticipantImpl(@NonNull LivingEntity member) {
+		this.members = Collections.singletonMap(member, Ares.getAudiences().sender(member));
 	}
 
-	private ParticipantImpl(@NonNull Collection<@NonNull Player> players) {
-		this.players = players.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> Ares.getAudiences().player(p)));
+	private ParticipantImpl(@NonNull Collection<LivingEntity> members) {
+		this.members = members.stream().collect(Collectors.toConcurrentMap(Function.identity(), m -> Ares.getAudiences().sender(m)));
 	}
 
 	@Override
-	public @NonNull Collection<@NonNull Player> getPlayers() {
-		return ImmutableSet.copyOf(players.keySet());
+	public @NonNull Collection<LivingEntity> getMembers() {
+		return ImmutableSet.copyOf(members.keySet());
 	}
 
 	@Override
 	public @NonNull Iterable<? extends Audience> audiences() {
-		return ImmutableSet.copyOf(players.values());
+		return ImmutableSet.copyOf(members.values());
 	}
 
-	public static @NonNull Participant of(@NonNull Player player) {
-		return player.isOnline() ? new ParticipantImpl(player) : Participant.dummy();
+	public static @NonNull Participant of(@NonNull LivingEntity entity) {
+		return Participant.isValidEntity(entity) ? new ParticipantImpl(entity) : Participant.dummy();
 	}
 
-	public static @NonNull Participant of(@NonNull Collection<@NonNull Player> players) {
-		return players.isEmpty() ? Participant.dummy() : new ParticipantImpl(players);
+	public static @NonNull Participant of(@NonNull Collection<LivingEntity> members) {
+		Set<LivingEntity> filteredMembers = members.stream().filter(Participant::isValidEntity).collect(Collectors.toSet());
+		return filteredMembers.isEmpty() ? Participant.dummy() : new ParticipantImpl(filteredMembers);
 	}
 }

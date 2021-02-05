@@ -21,6 +21,7 @@ package me.moros.ares.command;
 
 import me.moros.ares.Ares;
 import me.moros.ares.locale.Message;
+import me.moros.ares.model.Battle;
 import me.moros.ares.model.Participant;
 import me.moros.ares.model.ParticipantImpl;
 import me.moros.ares.model.Tournament;
@@ -34,10 +35,12 @@ import me.moros.atlas.acf.annotation.Description;
 import me.moros.atlas.acf.annotation.HelpCommand;
 import me.moros.atlas.acf.annotation.Optional;
 import me.moros.atlas.acf.annotation.Subcommand;
+import me.moros.atlas.acf.bukkit.contexts.OnlinePlayer;
 import me.moros.atlas.kyori.adventure.text.Component;
 import me.moros.atlas.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 @CommandAlias("%arescommand")
@@ -94,5 +97,15 @@ public class AresCommand extends BaseCommand {
 	public static void onCreate(CommandUser user, String name) {
 		// Validate name and build tournament
 		// Offer tournament presets
+	}
+
+	// TODO require duel accept, add time/rules/arena
+	@Subcommand("duel|d")
+	@CommandPermission("ares.command.duel")
+	@CommandCompletion("@players")
+	@Description("Duel another player")
+	public static void onDuel(Player player, OnlinePlayer other) {
+		Collection<Participant> parties = Arrays.asList(ParticipantImpl.of(player), ParticipantImpl.of(other.getPlayer()));
+		Battle.createBattle(parties).ifPresent(Battle::start);
 	}
 }

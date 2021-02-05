@@ -17,31 +17,25 @@
  *   along with Ares.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.model.victory;
 
+import me.moros.ares.model.Battle;
+import me.moros.ares.model.Participant;
+import me.moros.ares.model.ScoreEntry;
+import me.moros.atlas.cf.checker.index.qual.Positive;
 import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.audience.ForwardingAudience;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import me.moros.atlas.cf.checker.nullness.qual.Nullable;
 
-import java.util.Collection;
+public class ScoreVictory implements BattleVictory {
+	private final int score;
 
-public interface Participant extends ForwardingAudience {
-	default boolean hasMember(@NonNull LivingEntity entity) {
-		return getMembers().contains(entity);
+	public ScoreVictory(@Positive int score) {
+		this.score = score;
 	}
 
-	default boolean isValid() {
-		return getMembers().stream().allMatch(Participant::isValidEntity);
-	}
-
-	@NonNull Collection<LivingEntity> getMembers();
-
-	static @NonNull Participant dummy() {
-		return DummyParticipant.INSTANCE;
-	}
-
-	static boolean isValidEntity(@NonNull LivingEntity entity) {
-		return (entity instanceof Player && ((Player) entity).isOnline()) || entity.isValid();
+	public @Nullable Participant apply(@NonNull Battle battle) {
+		ScoreEntry top = battle.getTopEntry();
+		if (top != null && top.getBattleScore().getScore() >= score) return top.getParticipant();
+		return null;
 	}
 }

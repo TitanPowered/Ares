@@ -43,9 +43,9 @@ public interface Tournament {
 		return getParticipants().contains(participant);
 	}
 
-	@NonNull Collection<@NonNull Participant> getParticipants();
+	@NonNull Collection<Participant> getParticipants();
 
 	boolean addBattle(@NonNull Battle battle);
 
-	@NonNull Collection<@NonNull Battle> getCurrentBattles();
+	@NonNull Collection<Battle> getCurrentBattles();
 }

@@ -43,11 +43,11 @@ public final class TournamentManager {
 		return Optional.ofNullable(tournaments.get(name.toLowerCase()));
 	}
 
-	public @NonNull Collection<@NonNull String> getTournamentNames() {
+	public @NonNull Collection<String> getTournamentNames() {
 		return ImmutableSet.copyOf(tournaments.keySet());
 	}
 
-	public @NonNull Collection<@NonNull Tournament> getTournaments() {
+	public @NonNull Collection<Tournament> getTournaments() {
 		return ImmutableSet.copyOf(tournaments.values());
 	}
 

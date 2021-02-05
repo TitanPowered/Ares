@@ -20,28 +20,21 @@
 package me.moros.ares.model;
 
 import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.audience.ForwardingAudience;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 
-import java.util.Collection;
+public class ScoreEntry {
+	private final Participant participant;
+	private final BattleScore score;
 
-public interface Participant extends ForwardingAudience {
-	default boolean hasMember(@NonNull LivingEntity entity) {
-		return getMembers().contains(entity);
+	public ScoreEntry(@NonNull Participant participant, @NonNull BattleScore score) {
+		this.participant = participant;
+		this.score = score;
 	}
 
-	default boolean isValid() {
-		return getMembers().stream().allMatch(Participant::isValidEntity);
+	public @NonNull Participant getParticipant() {
+		return participant;
 	}
 
-	@NonNull Collection<LivingEntity> getMembers();
-
-	static @NonNull Participant dummy() {
-		return DummyParticipant.INSTANCE;
-	}
-
-	static boolean isValidEntity(@NonNull LivingEntity entity) {
-		return (entity instanceof Player && ((Player) entity).isOnline()) || entity.isValid();
+	public @NonNull BattleScore getBattleScore() {
+		return score;
 	}
 }

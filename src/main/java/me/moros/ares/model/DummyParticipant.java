@@ -21,11 +21,10 @@ package me.moros.ares.model;
 
 import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 import me.moros.atlas.kyori.adventure.audience.Audience;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Optional;
 
 public final class DummyParticipant implements Participant {
 	static final DummyParticipant INSTANCE = new DummyParticipant();
@@ -34,23 +33,18 @@ public final class DummyParticipant implements Participant {
 	}
 
 	@Override
-	public @NonNull Collection<@NonNull Player> getPlayers() {
+	public @NonNull Collection<LivingEntity> getMembers() {
 		return Collections.emptyList();
 	}
 
 	@Override
-	public boolean hasPlayer(@NonNull Player player) {
+	public boolean hasMember(@NonNull LivingEntity entity) {
 		return false;
 	}
 
 	@Override
 	public boolean isValid() {
 		return false;
-	}
-
-	@Override
-	public Optional<Battle> matchWith(@NonNull Participant other) {
-		return Optional.empty();
 	}
 
 	@Override

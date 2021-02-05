@@ -19,6 +19,8 @@
 
 package me.moros.ares.listener;
 
+import me.moros.bending.events.BendingDamageEvent;
+import me.moros.bending.events.BendingRestrictEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -37,5 +39,13 @@ public class ParticipantListener implements Listener {
 
 	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
+	}
+
+	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+	public void onBendingDamage(BendingDamageEvent event) {
+	}
+
+	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+	public void onBendingRestriction(BendingRestrictEvent event) {
 	}
 }
