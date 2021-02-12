@@ -43,6 +43,14 @@ public interface Message {
 	Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join-fail", RED)
 		.args(tournament);
 
+	Args0 SELF_IN_BATTLE = () -> translatable("ares.command.duel.in-battle.self", YELLOW);
+
+	Args1<String> OTHER_IN_BATTLE = name -> translatable("ares.command.duel.in-battle.other", YELLOW)
+		.args(text(name, GOLD));
+
+	Args2<String, String> VERSION_COMMAND_HOVER = (author, link) -> translatable("ares.command.version.hover", DARK_AQUA)
+		.args(text(author, GREEN), text(link, GREEN));
+
 	static Component brand(ComponentLike message) {
 		return PREFIX.asComponent().append(message);
 	}

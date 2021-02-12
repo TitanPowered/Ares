@@ -20,6 +20,7 @@
 package me.moros.ares;
 
 import me.moros.ares.command.Commands;
+import me.moros.ares.game.Game;
 import me.moros.atlas.kyori.adventure.platform.bukkit.BukkitAudiences;
 import me.moros.ares.locale.TranslationManager;
 import me.moros.storage.logging.Logger;
@@ -33,8 +34,8 @@ public class Ares extends JavaPlugin {
 	private Logger logger;
 
 	private TranslationManager translationManager;
-	private TournamentManager manager;
 	private BukkitAudiences audiences;
+	private Game game;
 
 	private String author;
 	private String version;
@@ -48,7 +49,7 @@ public class Ares extends JavaPlugin {
 
 		translationManager = new TranslationManager(getConfigFolder());
 		audiences = BukkitAudiences.create(this);
-		manager = new TournamentManager();
+		game = new Game(this);
 
 		new Commands(this);
 	}
@@ -57,16 +58,16 @@ public class Ares extends JavaPlugin {
 	public void onDisable() {
 	}
 
-	public static TournamentManager getManager() {
-		return plugin.manager;
-	}
-
 	public static TranslationManager getTranslationManager() {
 		return plugin.translationManager;
 	}
 
 	public static BukkitAudiences getAudiences() {
 		return plugin.audiences;
+	}
+
+	public static Game getGame() {
+		return plugin.game;
 	}
 
 	public static String getAuthor() {

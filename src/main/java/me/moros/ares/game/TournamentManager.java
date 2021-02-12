@@ -17,7 +17,7 @@
  *   along with Ares.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares;
+package me.moros.ares.game;
 
 import com.google.common.collect.ImmutableSet;
 import me.moros.ares.model.Tournament;

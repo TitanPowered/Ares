@@ -46,7 +46,7 @@ public class Commands {
 
 	private void registerCommandCompletions() {
 		CommandCompletions<BukkitCommandCompletionContext> commandCompletions = commandManager.getCommandCompletions();
-		commandCompletions.registerAsyncCompletion("tournaments", c -> Ares.getManager().getTournamentNames());
+		commandCompletions.registerAsyncCompletion("tournaments", c -> Ares.getGame().getTournamentManager().getTournamentNames());
 	}
 
 	private void registerCommandContexts() {
@@ -55,7 +55,8 @@ public class Commands {
 
 		commandContexts.registerContext(Tournament.class, c -> {
 			String name = c.popFirstArg().toLowerCase();
-			return Ares.getManager().getTournament(name).orElseThrow(() -> new InvalidCommandArgument("Could not find tournament " + name));
+			return Ares.getGame().getTournamentManager().getTournament(name)
+				.orElseThrow(() -> new InvalidCommandArgument("Could not find tournament " + name));
 		});
 	}
 }

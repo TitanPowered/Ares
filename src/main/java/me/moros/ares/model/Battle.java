@@ -21,6 +21,7 @@ package me.moros.ares.model;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import me.moros.ares.Ares;
 import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 import me.moros.atlas.cf.checker.nullness.qual.Nullable;
 import org.bukkit.entity.LivingEntity;
@@ -70,12 +71,14 @@ public class Battle {
 
 	public boolean start() {
 		if (started) return false;
+		Ares.getGame().getBattleManager().addBattle(this);
 		// TODO add preparation steps
 		return started = true;
 	}
 
 	public @NonNull Map<Participant, BattleScore> complete() {
 		// TODO cleanup after battle
+		Ares.getGame().getBattleManager().clearBattle(this);
 		return getScores();
 	}
 

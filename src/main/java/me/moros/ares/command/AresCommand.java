@@ -37,6 +37,8 @@ import me.moros.atlas.acf.annotation.Optional;
 import me.moros.atlas.acf.annotation.Subcommand;
 import me.moros.atlas.acf.bukkit.contexts.OnlinePlayer;
 import me.moros.atlas.kyori.adventure.text.Component;
+import me.moros.atlas.kyori.adventure.text.event.ClickEvent;
+import me.moros.atlas.kyori.adventure.text.event.HoverEvent;
 import me.moros.atlas.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
@@ -57,13 +59,13 @@ public class AresCommand extends BaseCommand {
 	@CommandCompletion("@tournaments")
 	@Description("List all currently active tournaments")
 	public static void onList(CommandUser user) {
-		Collection<Tournament> tournaments = Ares.getManager().getTournaments();
+		Collection<Tournament> tournaments = Ares.getGame().getTournamentManager().getTournaments();
 		if (tournaments.isEmpty()) {
 			Message.TOURNAMENT_LIST_EMPTY.send(user);
 			return;
 		}
 		Message.TOURNAMENT_LIST_HEADER.send(user);
-		for (Tournament tournament : Ares.getManager().getTournaments()) {
+		for (Tournament tournament : Ares.getGame().getTournamentManager().getTournaments()) {
 			user.sendMessage(Component.text("> ", NamedTextColor.DARK_GRAY).append(tournament.getDisplayName()));
 		}
 	}
@@ -105,7 +107,26 @@ public class AresCommand extends BaseCommand {
 	@CommandCompletion("@players")
 	@Description("Duel another player")
 	public static void onDuel(Player player, OnlinePlayer other) {
+		if (Ares.getGame().getBattleManager().isInBattle(player)) {
+			Message.SELF_IN_BATTLE.send(new CommandUser(player));
+			return;
+		} else if (Ares.getGame().getBattleManager().isInBattle(other.getPlayer())) {
+			Message.OTHER_IN_BATTLE.send(new CommandUser(player), other.getPlayer().getName());
+			return;
+		}
 		Collection<Participant> parties = Arrays.asList(ParticipantImpl.of(player), ParticipantImpl.of(other.getPlayer()));
 		Battle.createBattle(parties).ifPresent(Battle::start);
+	}
+
+	@Subcommand("version|ver|v")
+	@CommandPermission("bending.command.help")
+	@Description("View version info about the bending plugin")
+	public static void onVersion(CommandUser user) {
+		String link = "https://github.com/PrimordialMoros/Ares";
+		Component version = Component.text("Version: ", NamedTextColor.DARK_AQUA)
+			.append(Component.text(Ares.getVersion(), NamedTextColor.GREEN))
+			.hoverEvent(HoverEvent.showText(Message.VERSION_COMMAND_HOVER.build(Ares.getAuthor(), link)))
+			.clickEvent(ClickEvent.openUrl(link));
+		user.sendMessage(version);
 	}
 }
