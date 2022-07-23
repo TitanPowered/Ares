@@ -19,42 +19,38 @@
 
 package me.moros.ares.game;
 
-import me.moros.ares.model.Battle;
-import me.moros.ares.model.Participant;
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import org.bukkit.entity.LivingEntity;
-
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import me.moros.ares.model.Battle;
+import me.moros.ares.model.Participant;
+import org.bukkit.entity.LivingEntity;
+
 public class BattleManager {
-	private final Map<LivingEntity, Battle> activeBattles;
+  private final Map<LivingEntity, Battle> activeBattles;
 
-	public BattleManager() {
-		activeBattles = new ConcurrentHashMap<>();
-	}
+  public BattleManager() {
+    activeBattles = new ConcurrentHashMap<>();
+  }
 
-	public boolean isInBattle(@NonNull LivingEntity entity) {
-		return activeBattles.containsKey(entity);
-	}
+  public boolean isInBattle(LivingEntity entity) {
+    return activeBattles.containsKey(entity);
+  }
 
-	public Optional<Battle> getBattle(@NonNull LivingEntity entity) {
-		return Optional.of(activeBattles.get(entity));
-	}
+  public Optional<Battle> getBattle(LivingEntity entity) {
+    return Optional.of(activeBattles.get(entity));
+  }
 
-	public void addBattle(@NonNull Battle battle) {
-		battle.getParticipants().stream().map(Participant::getMembers)
-			.flatMap(Collection::stream).forEach(e -> activeBattles.put(e, battle));
-	}
+  public void addBattle(Battle battle) {
+    battle.participants().stream().flatMap(Participant::members).forEach(e -> activeBattles.put(e, battle));
+  }
 
-	public void clearBattle(@NonNull Battle battle) {
-		battle.getParticipants().stream().map(Participant::getMembers)
-			.flatMap(Collection::stream).forEach(activeBattles::remove);
-	}
+  public void clearBattle(Battle battle) {
+    battle.participants().stream().flatMap(Participant::members).forEach(activeBattles::remove);
+  }
 
-	public boolean removeFromBattle(@NonNull LivingEntity entity) {
-		return activeBattles.remove(entity) != null;
-	}
+  public boolean removeFromBattle(LivingEntity entity) {
+    return activeBattles.remove(entity) != null;
+  }
 }

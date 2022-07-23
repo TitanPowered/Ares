@@ -19,63 +19,72 @@
 
 package me.moros.ares.locale;
 
-import me.moros.ares.model.user.CommandUser;
-import me.moros.atlas.kyori.adventure.text.Component;
-import me.moros.atlas.kyori.adventure.text.ComponentLike;
+import java.util.Locale;
 
-import static me.moros.atlas.kyori.adventure.text.Component.text;
-import static me.moros.atlas.kyori.adventure.text.Component.translatable;
-import static me.moros.atlas.kyori.adventure.text.format.NamedTextColor.*;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
+
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.Component.translatable;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public interface Message {
-	Component PREFIX = text("[", DARK_GRAY)
-		.append(text("Ares", GOLD))
-		.append(text("] ", DARK_GRAY));
+  Locale DEFAULT_LOCALE = Locale.ENGLISH;
 
-	Args0 HELP_HEADER = () -> brand(translatable("ares.command.help.header", GOLD));
-	Args0 TOURNAMENT_LIST_HEADER = () -> translatable("ares.command.tournament.list.header", GOLD);
-	Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list-empty", YELLOW);
+  Component PREFIX = text("[", DARK_GRAY)
+    .append(text("Ares", GOLD))
+    .append(text("] ", DARK_GRAY));
 
-	Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join-started", YELLOW)
-		.args(tournament);
-	Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> translatable("ares.command.tournament.join-success", GREEN)
-		.args(tournament);
-	Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join-fail", RED)
-		.args(tournament);
+  Args0 CONFIRM_REQUIRED = () -> translatable("ares.command.confirm.required", YELLOW);
+  Args0 CONFIRM_NO_PENDING = () -> translatable("ares.command.confirm.no-pending", RED);
 
-	Args0 SELF_IN_BATTLE = () -> translatable("ares.command.duel.in-battle.self", YELLOW);
+  Args0 RELOAD = () -> translatable("ares.command.reload", GREEN);
 
-	Args1<String> OTHER_IN_BATTLE = name -> translatable("ares.command.duel.in-battle.other", YELLOW)
-		.args(text(name, GOLD));
+  Args0 HELP_HEADER = () -> brand(translatable("ares.command.help.header", GOLD));
+  Args0 TOURNAMENT_LIST_HEADER = () -> translatable("ares.command.tournament.list.header", GOLD);
+  Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list-empty", YELLOW);
 
-	Args2<String, String> VERSION_COMMAND_HOVER = (author, link) -> translatable("ares.command.version.hover", DARK_AQUA)
-		.args(text(author, GREEN), text(link, GREEN));
+  Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join-started", YELLOW)
+    .args(tournament);
+  Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> translatable("ares.command.tournament.join-success", GREEN)
+    .args(tournament);
+  Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join-fail", RED)
+    .args(tournament);
 
-	static Component brand(ComponentLike message) {
-		return PREFIX.asComponent().append(message);
-	}
+  Args0 SELF_BATTLE = () -> translatable("ares.command.duel.battle.self", YELLOW);
+  Args0 SELF_IN_BATTLE = () -> translatable("ares.command.duel.in-battle.self", YELLOW);
+  Args1<String> OTHER_IN_BATTLE = name -> translatable("ares.command.duel.in-battle.other", YELLOW)
+    .args(text(name, GOLD));
 
-	interface Args0 {
-		Component build();
+  Args2<String, String> VERSION_COMMAND_HOVER = (author, link) -> translatable("ares.command.version.hover", DARK_AQUA)
+    .args(text(author, GREEN), text(link, GREEN));
 
-		default void send(CommandUser user) {
-			user.sendMessage(build());
-		}
-	}
+  static Component brand(ComponentLike message) {
+    return PREFIX.asComponent().append(message);
+  }
 
-	interface Args1<A0> {
-		Component build(A0 arg0);
+  interface Args0 {
+    Component build();
 
-		default void send(CommandUser user, A0 arg0) {
-			user.sendMessage(build(arg0));
-		}
-	}
+    default void send(Audience user) {
+      user.sendMessage(build());
+    }
+  }
 
-	interface Args2<A0, A1> {
-		Component build(A0 arg0, A1 arg1);
+  interface Args1<A0> {
+    Component build(A0 arg0);
 
-		default void send(CommandUser user, A0 arg0, A1 arg1) {
-			user.sendMessage(build(arg0, arg1));
-		}
-	}
+    default void send(Audience user, A0 arg0) {
+      user.sendMessage(build(arg0));
+    }
+  }
+
+  interface Args2<A0, A1> {
+    Component build(A0 arg0, A1 arg1);
+
+    default void send(Audience user, A0 arg0, A1 arg1) {
+      user.sendMessage(build(arg0, arg1));
+    }
+  }
 }

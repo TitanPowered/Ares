@@ -19,14 +19,13 @@
 
 package me.moros.ares.model.victory;
 
+import java.util.function.Function;
+
 import me.moros.ares.model.Battle;
 import me.moros.ares.model.Participant;
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.cf.checker.nullness.qual.Nullable;
-
-import java.util.function.Function;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 @FunctionalInterface
 public interface BattleVictory extends Function<Battle, Participant> {
-	@Nullable Participant apply(@NonNull Battle battle);
+  @Nullable Participant apply(Battle battle);
 }

@@ -19,36 +19,48 @@
 
 package me.moros.ares.model;
 
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.audience.Audience;
-import org.bukkit.entity.LivingEntity;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
 
-import java.util.Collection;
-import java.util.Collections;
+import net.kyori.adventure.audience.Audience;
+import org.bukkit.entity.LivingEntity;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 public final class DummyParticipant implements Participant {
-	static final DummyParticipant INSTANCE = new DummyParticipant();
+  private static final UUID DEFAULT_UUID = new UUID(0, 0);
+  static final DummyParticipant INSTANCE = new DummyParticipant();
 
-	private DummyParticipant() {
-	}
+  private DummyParticipant() {
+  }
 
-	@Override
-	public @NonNull Collection<LivingEntity> getMembers() {
-		return Collections.emptyList();
-	}
+  @Override
+  public String name() {
+    return "";
+  }
 
-	@Override
-	public boolean hasMember(@NonNull LivingEntity entity) {
-		return false;
-	}
+  @Override
+  public boolean contains(LivingEntity entity) {
+    return false;
+  }
 
-	@Override
-	public boolean isValid() {
-		return false;
-	}
+  @Override
+  public boolean isValid() {
+    return false;
+  }
 
-	@Override
-	public @NonNull Iterable<? extends Audience> audiences() {
-		return Collections.emptyList();
-	}
+  @Override
+  public Stream<LivingEntity> members() {
+    return Stream.empty();
+  }
+
+  @Override
+  public @NonNull Iterable<? extends Audience> audiences() {
+    return List.of();
+  }
+
+  @Override
+  public @NonNull UUID uuid() {
+    return DEFAULT_UUID;
+  }
 }

@@ -20,22 +20,15 @@
 package me.moros.ares.game;
 
 import me.moros.ares.Ares;
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
 
 public class Game {
-	private final TournamentManager tournamentManager;
-	private final BattleManager battleManager;
+  private final BattleManager battleManager;
 
-	public Game(@NonNull  Ares plugin) {
-		tournamentManager = new TournamentManager();
-		battleManager = new BattleManager();
-	}
+  public Game(Ares plugin) {
+    battleManager = new BattleManager();
+  }
 
-	public @NonNull TournamentManager getTournamentManager() {
-		return tournamentManager;
-	}
-
-	public @NonNull BattleManager getBattleManager() {
-		return battleManager;
-	}
+  public BattleManager battleManager() {
+    return battleManager;
+  }
 }

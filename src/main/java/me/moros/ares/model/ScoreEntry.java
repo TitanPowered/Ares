@@ -19,22 +19,20 @@
 
 package me.moros.ares.model;
 
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-
 public class ScoreEntry {
-	private final Participant participant;
-	private final BattleScore score;
+  private final Participant participant;
+  private final BattleScore score;
 
-	public ScoreEntry(@NonNull Participant participant, @NonNull BattleScore score) {
-		this.participant = participant;
-		this.score = score;
-	}
+  public ScoreEntry(Participant participant, BattleScore score) {
+    this.participant = participant;
+    this.score = score;
+  }
 
-	public @NonNull Participant getParticipant() {
-		return participant;
-	}
+  public Participant getParticipant() {
+    return participant;
+  }
 
-	public @NonNull BattleScore getBattleScore() {
-		return score;
-	}
+  public BattleScore getBattleScore() {
+    return score;
+  }
 }

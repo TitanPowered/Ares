@@ -1,46 +1,77 @@
 plugins {
     java
-    id("com.github.johnrengelman.shadow").version("6.1.0")
+    id("com.github.johnrengelman.shadow").version("7.1.2")
 }
 
 group = "me.moros"
-version = "1.0.0"
+version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+    if (!isSnapshot()) {
+        withJavadocJar()
+    }
+    withSourcesJar()
 }
 
 repositories {
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
-    maven("https://repo.aikar.co/content/groups/aikar/")
-    maven("https://papermc.io/repo/repository/maven-public/")
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+    maven("https://repo.papermc.io/repository/maven-public/")
 }
 
 dependencies {
-    compileOnly("me.moros", "atlas-core", "1.0.0-SNAPSHOT")
-    compileOnly("me.moros", "bending", "1.0.0-SNAPSHOT")
-    compileOnly("com.destroystokyo.paper", "paper-api", "1.16.5-R0.1-SNAPSHOT")
+    compileOnly("me.moros", "bending-api", "2.0.0-SNAPSHOT")
+    implementation("com.github.ben-manes.caffeine", "caffeine", "3.0.6") {
+        exclude(module = "checker-qual")
+    }
+    implementation("org.bstats", "bstats-bukkit", "2.2.1")
+    implementation("cloud.commandframework","cloud-paper", "1.7.0")
+    implementation("cloud.commandframework","cloud-minecraft-extras", "1.7.0") {
+        exclude(group = "net.kyori")
+    }
+    implementation("org.spongepowered", "configurate-hocon", "4.1.2")
+    compileOnly("org.checkerframework", "checker-qual", "3.21.3")
+    compileOnly("io.papermc.paper", "paper-api", "1.18.2-R0.1-SNAPSHOT")
+}
+
+configurations.implementation {
+    exclude(module = "error_prone_annotations")
 }
 
 tasks {
     shadowJar {
         archiveClassifier.set("")
-        archiveBaseName.set(rootProject.name)
+        archiveBaseName.set(project.name)
         dependencies {
-            relocate("me.moros.example", "me.moros.ares.example")
+            relocate("com.github.benmanes.caffeine", "me.moros.ares.internal.caffeine")
+            relocate("org.bstats", "me.moros.ares.bstats")
+            relocate("cloud.commandframework", "me.moros.ares.internal.cf")
+            relocate("com.typesafe", "me.moros.ares.internal.typesafe")
+            relocate("io.leangen", "me.moros.ares.internal.leangen")
+            relocate("org.spongepowered.configurate", "me.moros.ares.internal.configurate")
         }
+        //minimize()
     }
     build {
         dependsOn(shadowJar)
     }
-    withType<AbstractArchiveTask> {
-        isPreserveFileTimestamps = false
-        isReproducibleFileOrder = true
+    withType<JavaCompile> {
+        options.compilerArgs.add("-Xlint:unchecked")
+        options.compilerArgs.add("-Xlint:deprecation")
+        options.encoding = "UTF-8"
     }
     named<Copy>("processResources") {
         filesMatching("plugin.yml") {
             expand("pluginVersion" to project.version)
         }
+        from("LICENSE") {
+            rename { "${project.name.toUpperCase()}_${it}"}
+        }
     }
 }
+
+fun isSnapshot() = project.version.toString().endsWith("-SNAPSHOT")

@@ -19,46 +19,49 @@
 
 package me.moros.ares.model;
 
-import com.google.common.collect.ImmutableSet;
-import me.moros.ares.Ares;
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.audience.Audience;
-import org.bukkit.entity.LivingEntity;
-
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import net.kyori.adventure.audience.Audience;
+import org.bukkit.entity.LivingEntity;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 public class ParticipantImpl implements Participant {
-	private final Map<LivingEntity, Audience> members;
+  private final UUID uuid;
+  private final String name;
+  private final Set<LivingEntity> members;
 
-	private ParticipantImpl(@NonNull LivingEntity member) {
-		this.members = Collections.singletonMap(member, Ares.getAudiences().sender(member));
-	}
+  ParticipantImpl(Collection<LivingEntity> members) {
+    var first = members.iterator().next();
+    this.name = first.getName();
+    this.uuid = first.getUniqueId();
+    this.members = Set.copyOf(members);
+  }
 
-	private ParticipantImpl(@NonNull Collection<LivingEntity> members) {
-		this.members = members.stream().collect(Collectors.toConcurrentMap(Function.identity(), m -> Ares.getAudiences().sender(m)));
-	}
+  @Override
+  public String name() {
+    return name;
+  }
 
-	@Override
-	public @NonNull Collection<LivingEntity> getMembers() {
-		return ImmutableSet.copyOf(members.keySet());
-	}
+  @Override
+  public @NonNull UUID uuid() {
+    return uuid;
+  }
 
-	@Override
-	public @NonNull Iterable<? extends Audience> audiences() {
-		return ImmutableSet.copyOf(members.values());
-	}
+  @Override
+  public boolean contains(LivingEntity entity) {
+    return members.contains(entity);
+  }
 
-	public static @NonNull Participant of(@NonNull LivingEntity entity) {
-		return Participant.isValidEntity(entity) ? new ParticipantImpl(entity) : Participant.dummy();
-	}
+  @Override
+  public Stream<LivingEntity> members() {
+    return members.stream();
+  }
 
-	public static @NonNull Participant of(@NonNull Collection<LivingEntity> members) {
-		Set<LivingEntity> filteredMembers = members.stream().filter(Participant::isValidEntity).collect(Collectors.toSet());
-		return filteredMembers.isEmpty() ? Participant.dummy() : new ParticipantImpl(filteredMembers);
-	}
+  @Override
+  public @NonNull Iterable<? extends Audience> audiences() {
+    return members;
+  }
 }

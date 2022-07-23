@@ -19,114 +19,146 @@
 
 package me.moros.ares.command;
 
+import java.util.Collection;
+import java.util.List;
+
+import cloud.commandframework.arguments.standard.StringArgument;
+import cloud.commandframework.arguments.standard.StringArgument.StringMode;
+import cloud.commandframework.meta.CommandMeta;
 import me.moros.ares.Ares;
+import me.moros.ares.game.Game;
 import me.moros.ares.locale.Message;
 import me.moros.ares.model.Battle;
 import me.moros.ares.model.Participant;
-import me.moros.ares.model.ParticipantImpl;
 import me.moros.ares.model.Tournament;
-import me.moros.ares.model.user.CommandUser;
-import me.moros.atlas.acf.BaseCommand;
-import me.moros.atlas.acf.CommandHelp;
-import me.moros.atlas.acf.annotation.CommandAlias;
-import me.moros.atlas.acf.annotation.CommandCompletion;
-import me.moros.atlas.acf.annotation.CommandPermission;
-import me.moros.atlas.acf.annotation.Description;
-import me.moros.atlas.acf.annotation.HelpCommand;
-import me.moros.atlas.acf.annotation.Optional;
-import me.moros.atlas.acf.annotation.Subcommand;
-import me.moros.atlas.acf.bukkit.contexts.OnlinePlayer;
-import me.moros.atlas.kyori.adventure.text.Component;
-import me.moros.atlas.kyori.adventure.text.event.ClickEvent;
-import me.moros.atlas.kyori.adventure.text.event.HoverEvent;
-import me.moros.atlas.kyori.adventure.text.format.NamedTextColor;
+import me.moros.ares.registry.Registries;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.Arrays;
-import java.util.Collection;
+public class AresCommand {
+  private final Ares plugin;
+  private final Game game;
+  private final CommandManager manager;
 
-@CommandAlias("%arescommand")
-public class AresCommand extends BaseCommand {
-	@HelpCommand
-	@CommandPermission("ares.command.help")
-	public static void doHelp(CommandUser user, CommandHelp help) {
-		Message.HELP_HEADER.send(user);
-		help.showHelp();
-	}
+  AresCommand(Ares plugin, Game game, CommandManager manager) {
+    this.plugin = plugin;
+    this.game = game;
+    this.manager = manager;
+    construct();
+  }
 
-	@Subcommand("list|ls")
-	@CommandPermission("ares.command.list")
-	@CommandCompletion("@tournaments")
-	@Description("List all currently active tournaments")
-	public static void onList(CommandUser user) {
-		Collection<Tournament> tournaments = Ares.getGame().getTournamentManager().getTournaments();
-		if (tournaments.isEmpty()) {
-			Message.TOURNAMENT_LIST_EMPTY.send(user);
-			return;
-		}
-		Message.TOURNAMENT_LIST_HEADER.send(user);
-		for (Tournament tournament : Ares.getGame().getTournamentManager().getTournaments()) {
-			user.sendMessage(Component.text("> ", NamedTextColor.DARK_GRAY).append(tournament.getDisplayName()));
-		}
-	}
+  private void construct() {
+    var builder = manager.commandBuilder("ares")
+      .meta(CommandMeta.DESCRIPTION, "Base command for Ares");
+    var participantArg = manager.argumentBuilder(Participant.class, "participant");
+    var tournamentArg = manager.argumentBuilder(Tournament.class, "tournament")
+      .asOptionalWithDefault("default");
 
-	// TODO allow specifying team members?
-	@Subcommand("join|j")
-	@CommandPermission("ares.command.join")
-	@CommandCompletion("@tournaments")
-	@Description("Join an open tournament")
-	public static void onJoin(Player player, @Optional Tournament tournament) {
-		if (tournament == null) {
-			// If no tournament is specified then select the first open tournament
-			return;
-		}
-		Participant participant = ParticipantImpl.of(player);
-		if (tournament.hasParticipant(participant)) {
-			participant.sendMessage(Message.TOURNAMENT_ALREADY_JOINED.build(tournament.getDisplayName()));
-			return;
-		}
-		if (tournament.addParticipant(participant)) {
-			participant.sendMessage(Message.TOURNAMENT_JOIN_SUCCESS.build(tournament.getDisplayName()));
-		} else {
-			participant.sendMessage(Message.TOURNAMENT_JOIN_FAIL.build(tournament.getDisplayName()));
-		}
-	}
+    //noinspection ConstantConditions
+    manager.command(builder.handler(c -> manager.help().queryCommands("", c.getSender())))
+      .command(builder.literal("confirm")
+        .meta(CommandMeta.DESCRIPTION, "Confirm a pending command")
+        .handler(manager.confirmationHandler())
+      ).command(builder.literal("reload")
+        .meta(CommandMeta.DESCRIPTION, "Reload the plugin")
+        .permission(CommandPermissions.RELOAD)
+        .handler(c -> onReload(c.getSender()))
+      ).command(builder.literal("version", "v")
+        .meta(CommandMeta.DESCRIPTION, "View version info about Ares")
+        .permission(CommandPermissions.VERSION)
+        .handler(c -> onVersion(c.getSender()))
+      ).command(builder.literal("list", "ls")
+        .meta(CommandMeta.DESCRIPTION, "View all currently active tournaments")
+        .permission(CommandPermissions.LIST)
+        .handler(c -> onList(c.getSender()))
+      ).command(builder.literal("join", "j")
+        .meta(CommandMeta.DESCRIPTION, "Join an open tournaments")
+        .permission(CommandPermissions.JOIN)
+        .senderType(Player.class)
+        .argument(tournamentArg.build())
+        .handler(c -> onJoin((Player) c.getSender(), c.get("tournament")))
+      ).command(builder.literal("create", "c", "new", "n")
+        .meta(CommandMeta.DESCRIPTION, "Create a new tournament")
+        .permission(CommandPermissions.CREATE)
+        .argument(StringArgument.single("name"))
+        .handler(c -> onCreate(c.getSender(), c.get("name")))
+      ).command(builder.literal("duel", "d")
+        .meta(CommandMeta.DESCRIPTION, "Duel another participant")
+        .permission(CommandPermissions.DUEL)
+        .senderType(Player.class)
+        .argument(participantArg.build())
+        .handler(c -> onCreate(c.getSender(), c.get("participant")))
+      ).command(builder.literal("help", "h")
+        .meta(CommandMeta.DESCRIPTION, "View info about a command")
+        .permission(CommandPermissions.HELP)
+        .argument(StringArgument.optional("query", StringMode.GREEDY))
+        .handler(c -> manager.help().queryCommands(c.getOrDefault("query", ""), c.getSender()))
+      );
+  }
 
-	@Subcommand("create|c|new|n")
-	@CommandPermission("ares.command.create")
-	@CommandCompletion("@tournaments")
-	@Description("Create an new tournament")
-	public static void onCreate(CommandUser user, String name) {
-		// Validate name and build tournament
-		// Offer tournament presets
-	}
+  private void onReload(CommandSender sender) {
+    plugin.translationManager().reload();
+    Message.RELOAD.send(sender);
+  }
 
-	// TODO require duel accept, add time/rules/arena
-	@Subcommand("duel|d")
-	@CommandPermission("ares.command.duel")
-	@CommandCompletion("@players")
-	@Description("Duel another player")
-	public static void onDuel(Player player, OnlinePlayer other) {
-		if (Ares.getGame().getBattleManager().isInBattle(player)) {
-			Message.SELF_IN_BATTLE.send(new CommandUser(player));
-			return;
-		} else if (Ares.getGame().getBattleManager().isInBattle(other.getPlayer())) {
-			Message.OTHER_IN_BATTLE.send(new CommandUser(player), other.getPlayer().getName());
-			return;
-		}
-		Collection<Participant> parties = Arrays.asList(ParticipantImpl.of(player), ParticipantImpl.of(other.getPlayer()));
-		Battle.createBattle(parties).ifPresent(Battle::start);
-	}
+  private void onVersion(CommandSender user) {
+    String link = "https://github.com/PrimordialMoros/Ares";
+    Component version = Message.brand(Component.text("Version: ", NamedTextColor.DARK_AQUA))
+      .append(Component.text(plugin.version(), NamedTextColor.GREEN))
+      .hoverEvent(HoverEvent.showText(Message.VERSION_COMMAND_HOVER.build(plugin.author(), link)))
+      .clickEvent(ClickEvent.openUrl(link));
+    user.sendMessage(version);
+  }
 
-	@Subcommand("version|ver|v")
-	@CommandPermission("bending.command.help")
-	@Description("View version info about the bending plugin")
-	public static void onVersion(CommandUser user) {
-		String link = "https://github.com/PrimordialMoros/Ares";
-		Component version = Component.text("Version: ", NamedTextColor.DARK_AQUA)
-			.append(Component.text(Ares.getVersion(), NamedTextColor.GREEN))
-			.hoverEvent(HoverEvent.showText(Message.VERSION_COMMAND_HOVER.build(Ares.getAuthor(), link)))
-			.clickEvent(ClickEvent.openUrl(link));
-		user.sendMessage(version);
-	}
+  private void onList(CommandSender user) {
+    Collection<Tournament> tournaments = Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).toList();
+    if (tournaments.isEmpty()) {
+      Message.TOURNAMENT_LIST_EMPTY.send(user);
+      return;
+    }
+    Message.TOURNAMENT_LIST_HEADER.send(user);
+    for (Tournament tournament : tournaments) {
+      user.sendMessage(Component.text("> ", NamedTextColor.DARK_GRAY).append(tournament.displayName()));
+    }
+  }
+
+  // TODO allow specifying team members?
+  private void onJoin(Player player, Tournament tournament) {
+    Participant participant = Participant.of(player);
+    if (tournament.hasParticipant(participant)) {
+      participant.sendMessage(Message.TOURNAMENT_ALREADY_JOINED.build(tournament.displayName()));
+      return;
+    }
+    if (tournament.addParticipant(participant)) {
+      participant.sendMessage(Message.TOURNAMENT_JOIN_SUCCESS.build(tournament.displayName()));
+    } else {
+      participant.sendMessage(Message.TOURNAMENT_JOIN_FAIL.build(tournament.displayName()));
+    }
+  }
+
+  private void onCreate(CommandSender user, String name) {
+    // Validate name and build tournament
+    // Offer tournament presets
+  }
+
+  // TODO require duel accept, add time/rules/arena
+  private void onDuel(Player player, Player other) {
+    if (player.equals(other)) {
+      Message.SELF_BATTLE.send(player);
+      return;
+    }
+    if (game.battleManager().isInBattle(player)) {
+      Message.SELF_IN_BATTLE.send(player);
+      return;
+    } else if (game.battleManager().isInBattle(other)) {
+      Message.OTHER_IN_BATTLE.send(player, other.getName());
+      return;
+    }
+    Battle.createBattle(List.of(Participant.of(player), Participant.of(other)))
+      .ifPresent(b -> b.start(game.battleManager()));
+  }
 }

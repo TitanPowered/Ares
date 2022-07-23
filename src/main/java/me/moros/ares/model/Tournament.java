@@ -19,33 +19,31 @@
 
 package me.moros.ares.model;
 
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.text.Component;
+import java.util.stream.Stream;
 
-import java.util.Collection;
+import net.kyori.adventure.text.Component;
 
+// TODO create implementations
 public interface Tournament {
-	@NonNull String getName();
+  String name();
 
-	@NonNull Component getDisplayName();
+  Component displayName();
 
-	boolean isOpen();
+  boolean isOpen();
 
-	void start();
+  void start();
 
-	void finish();
+  void finish();
 
-	boolean addParticipant(@NonNull Participant participant);
+  boolean addParticipant(Participant participant);
 
-	boolean removeParticipant(@NonNull Participant participant);
+  boolean removeParticipant(Participant participant);
 
-	default boolean hasParticipant(@NonNull Participant participant) {
-		return getParticipants().contains(participant);
-	}
+  boolean hasParticipant(Participant participant);
 
-	@NonNull Collection<Participant> getParticipants();
+  Stream<Participant> participants();
 
-	boolean addBattle(@NonNull Battle battle);
+  boolean addBattle(Battle battle);
 
-	@NonNull Collection<Battle> getCurrentBattles();
+  Stream<Battle> currentBattles();
 }

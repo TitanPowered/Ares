@@ -22,20 +22,19 @@ package me.moros.ares.model.victory;
 import me.moros.ares.model.Battle;
 import me.moros.ares.model.Participant;
 import me.moros.ares.model.ScoreEntry;
-import me.moros.atlas.cf.checker.index.qual.Positive;
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.cf.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ScoreVictory implements BattleVictory {
-	private final int score;
+  private final int score;
 
-	public ScoreVictory(@Positive int score) {
-		this.score = score;
-	}
+  public ScoreVictory(@Positive int score) {
+    this.score = score;
+  }
 
-	public @Nullable Participant apply(@NonNull Battle battle) {
-		ScoreEntry top = battle.getTopEntry();
-		if (top != null && top.getBattleScore().getScore() >= score) return top.getParticipant();
-		return null;
-	}
+  public @Nullable Participant apply(Battle battle) {
+    ScoreEntry top = battle.topEntry();
+    if (top != null && top.getBattleScore().getScore() >= score) return top.getParticipant();
+    return null;
+  }
 }

@@ -19,70 +19,63 @@
 
 package me.moros.ares;
 
-import me.moros.ares.command.Commands;
+import me.moros.ares.command.CommandManager;
 import me.moros.ares.game.Game;
-import me.moros.atlas.kyori.adventure.platform.bukkit.BukkitAudiences;
+import me.moros.ares.listener.BendingListener;
+import me.moros.ares.listener.ParticipantListener;
+import me.moros.ares.listener.ProjectKorraListener;
 import me.moros.ares.locale.TranslationManager;
-import me.moros.storage.logging.Logger;
-import me.moros.storage.logging.Slf4jLogger;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
+// TODO add Gaia integration
 public class Ares extends JavaPlugin {
-	private static Ares plugin;
+  private String author;
+  private String version;
 
-	private Logger logger;
+  private Logger logger;
+  private TranslationManager translationManager;
+  private Game game;
 
-	private TranslationManager translationManager;
-	private BukkitAudiences audiences;
-	private Game game;
+  @Override
+  public void onEnable() {
+    logger = getSLF4JLogger();
+    author = getDescription().getAuthors().get(0);
+    version = getDescription().getVersion();
 
-	private String author;
-	private String version;
+    translationManager = new TranslationManager(logger, getDataFolder().toString());
+    game = new Game(this);
+    try {
+      new CommandManager(this, game);
+    } catch (Exception e) {
+      logger.error(e.getMessage(), e);
+      getServer().getPluginManager().disablePlugin(this);
+    }
+    getServer().getPluginManager().registerEvents(new ParticipantListener(), this);
+    registerHooks();
+  }
 
-	@Override
-	public void onEnable() {
-		plugin = this;
-		logger = new Slf4jLogger(LoggerFactory.getLogger(getClass().getSimpleName()));
-		author = getDescription().getAuthors().get(0);
-		version = getDescription().getVersion();
+  private void registerHooks() {
+    if (getServer().getPluginManager().isPluginEnabled("Bending")) {
+      getServer().getPluginManager().registerEvents(new BendingListener(), this);
+    } else if (getServer().getPluginManager().isPluginEnabled("ProjectKorra")) {
+      getServer().getPluginManager().registerEvents(new ProjectKorraListener(), this);
+    }
+  }
 
-		translationManager = new TranslationManager(getConfigFolder());
-		audiences = BukkitAudiences.create(this);
-		game = new Game(this);
+  public String author() {
+    return author;
+  }
 
-		new Commands(this);
-	}
+  public String version() {
+    return version;
+  }
 
-	@Override
-	public void onDisable() {
-	}
+  public Logger logger() {
+    return logger;
+  }
 
-	public static TranslationManager getTranslationManager() {
-		return plugin.translationManager;
-	}
-
-	public static BukkitAudiences getAudiences() {
-		return plugin.audiences;
-	}
-
-	public static Game getGame() {
-		return plugin.game;
-	}
-
-	public static String getAuthor() {
-		return plugin.author;
-	}
-
-	public static String getVersion() {
-		return plugin.version;
-	}
-
-	public static Logger getLog() {
-		return plugin.logger;
-	}
-
-	public static String getConfigFolder() {
-		return plugin.getDataFolder().toString();
-	}
+  public TranslationManager translationManager() {
+    return translationManager;
+  }
 }

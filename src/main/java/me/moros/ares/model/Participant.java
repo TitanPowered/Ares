@@ -19,29 +19,41 @@
 
 package me.moros.ares.model;
 
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-import me.moros.atlas.kyori.adventure.audience.ForwardingAudience;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import net.kyori.adventure.audience.ForwardingAudience;
+import net.kyori.adventure.identity.Identity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-import java.util.Collection;
+public interface Participant extends Identity, ForwardingAudience {
+  String name();
 
-public interface Participant extends ForwardingAudience {
-	default boolean hasMember(@NonNull LivingEntity entity) {
-		return getMembers().contains(entity);
-	}
+  boolean contains(LivingEntity entity);
 
-	default boolean isValid() {
-		return getMembers().stream().allMatch(Participant::isValidEntity);
-	}
+  default boolean isValid() {
+    return members().allMatch(Participant::isValidEntity);
+  }
 
-	@NonNull Collection<LivingEntity> getMembers();
+  Stream<LivingEntity> members();
 
-	static @NonNull Participant dummy() {
-		return DummyParticipant.INSTANCE;
-	}
+  static Participant dummy() {
+    return DummyParticipant.INSTANCE;
+  }
 
-	static boolean isValidEntity(@NonNull LivingEntity entity) {
-		return (entity instanceof Player && ((Player) entity).isOnline()) || entity.isValid();
-	}
+  static boolean isValidEntity(LivingEntity entity) {
+    return (entity instanceof Player player && player.isOnline()) || entity.isValid();
+  }
+
+  static Participant of(LivingEntity entity) {
+    return of(Set.of(entity));
+  }
+
+  static Participant of(Collection<LivingEntity> members) {
+    Set<LivingEntity> filteredMembers = members.stream().filter(Participant::isValidEntity).collect(Collectors.toSet());
+    return filteredMembers.isEmpty() ? Participant.dummy() : new ParticipantImpl(filteredMembers);
+  }
 }

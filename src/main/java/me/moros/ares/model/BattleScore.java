@@ -19,30 +19,28 @@
 
 package me.moros.ares.model;
 
-import me.moros.atlas.cf.checker.nullness.qual.NonNull;
-
 public final class BattleScore {
-	public static final BattleScore ZERO = new BattleScore(0);
+  public static final BattleScore ZERO = new BattleScore(0);
 
-	private final int score;
+  private final int score;
 
-	private BattleScore(int score) {
-		this.score = score;
-	}
+  private BattleScore(int score) {
+    this.score = score;
+  }
 
-	public @NonNull BattleScore increment() {
-		return increment(1);
-	}
+  public BattleScore increment() {
+    return increment(1);
+  }
 
-	public @NonNull BattleScore increment(int value) {
-		return (value > 0) ? new BattleScore(score + value) : this;
-	}
+  public BattleScore increment(int value) {
+    return (value > 0) ? new BattleScore(score + value) : this;
+  }
 
-	public @NonNull BattleScore add(@NonNull BattleScore other) {
-		return (other.score > 0) ? new BattleScore(score + other.score) : this;
-	}
+  public BattleScore add(BattleScore other) {
+    return (other.score > 0) ? new BattleScore(score + other.score) : this;
+  }
 
-	public int getScore() {
-		return score;
-	}
+  public int getScore() {
+    return score;
+  }
 }
