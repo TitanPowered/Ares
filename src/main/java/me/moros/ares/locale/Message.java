@@ -1,20 +1,20 @@
 /*
- *   Copyright 2020 Moros <https://github.com/PrimordialMoros>
+ * Copyright 2020-2022 Moros
  *
- *    This file is part of Ares.
+ * This file is part of Ares.
  *
- *   Ares is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU Affero General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ * Ares is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   Ares is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU Affero General Public License for more details.
+ * Ares is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU Affero General Public License
- *   along with Ares.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
 package me.moros.ares.locale;
@@ -43,13 +43,22 @@ public interface Message {
 
   Args0 HELP_HEADER = () -> brand(translatable("ares.command.help.header", GOLD));
   Args0 TOURNAMENT_LIST_HEADER = () -> translatable("ares.command.tournament.list.header", GOLD);
-  Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list-empty", YELLOW);
+  Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list.empty", YELLOW);
 
-  Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join-started", YELLOW)
+  Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join.started", YELLOW)
     .args(tournament);
-  Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> translatable("ares.command.tournament.join-success", GREEN)
+  Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> translatable("ares.command.tournament.join.success", GREEN)
     .args(tournament);
-  Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join-fail", RED)
+  Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join.fail", RED)
+    .args(tournament);
+
+  Args1<String> TOURNAMENT_CREATE_INVALID_NAME = name -> translatable("ares.command.tournament.create.invalid", RED)
+    .args(text(name));
+  Args1<Component> TOURNAMENT_START_SUCCESS = tournament -> translatable("ares.command.tournament.start.success", GREEN)
+    .args(tournament);
+  Args1<Integer> TOURNAMENT_START_ODD = size -> translatable("ares.command.tournament.start.warning", YELLOW)
+    .args(text(size));
+  Args1<Component> TOURNAMENT_START_FAIL = tournament -> translatable("ares.command.tournament.start.fail", RED)
     .args(tournament);
 
   Args0 SELF_BATTLE = () -> translatable("ares.command.duel.battle.self", YELLOW);

@@ -1,20 +1,20 @@
 /*
- *   Copyright 2020 Moros <https://github.com/PrimordialMoros>
+ * Copyright 2020-2022 Moros
  *
- *    This file is part of Ares.
+ * This file is part of Ares.
  *
- *   Ares is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU Affero General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ * Ares is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   Ares is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU Affero General Public License for more details.
+ * Ares is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU Affero General Public License
- *   along with Ares.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
 package me.moros.ares.command;
@@ -30,8 +30,11 @@ import me.moros.ares.game.Game;
 import me.moros.ares.locale.Message;
 import me.moros.ares.model.Battle;
 import me.moros.ares.model.Participant;
+import me.moros.ares.model.SimpleTournament;
 import me.moros.ares.model.Tournament;
+import me.moros.ares.model.victory.ScoreVictory;
 import me.moros.ares.registry.Registries;
+import me.moros.ares.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -86,12 +89,17 @@ public class AresCommand {
         .permission(CommandPermissions.CREATE)
         .argument(StringArgument.single("name"))
         .handler(c -> onCreate(c.getSender(), c.get("name")))
+      ).command(builder.literal("start", "init", "s")
+        .meta(CommandMeta.DESCRIPTION, "Start an open tournament")
+        .permission(CommandPermissions.CREATE)
+        .argument(tournamentArg.build())
+        .handler(c -> onStart(c.getSender(), c.get("tournament")))
       ).command(builder.literal("duel", "d")
         .meta(CommandMeta.DESCRIPTION, "Duel another participant")
         .permission(CommandPermissions.DUEL)
         .senderType(Player.class)
         .argument(participantArg.build())
-        .handler(c -> onCreate(c.getSender(), c.get("participant")))
+        .handler(c -> onDuel((Player) c.getSender(), c.get("participant")))
       ).command(builder.literal("help", "h")
         .meta(CommandMeta.DESCRIPTION, "View info about a command")
         .permission(CommandPermissions.HELP)
@@ -141,24 +149,42 @@ public class AresCommand {
   }
 
   private void onCreate(CommandSender user, String name) {
-    // Validate name and build tournament
-    // Offer tournament presets
+    // TODO Offer tournament presets and build instead of providing simple tournament
+    String validatedName = TextUtil.sanitizeInput(name);
+    if (validatedName.isEmpty()) {
+      Message.TOURNAMENT_CREATE_INVALID_NAME.send(user, name);
+      return;
+    }
+    Tournament tournament = new SimpleTournament(validatedName);
+    Registries.TOURNAMENTS.register(tournament);
+  }
+
+  private void onStart(CommandSender user, Tournament tournament) {
+    if (tournament.start()) {
+      Message.TOURNAMENT_START_SUCCESS.send(user, tournament.displayName());
+      int size = tournament.size();
+      if (size % 2 != 0) {
+        Message.TOURNAMENT_START_ODD.send(user, size);
+      }
+    } else {
+      Message.TOURNAMENT_START_FAIL.send(user, tournament.displayName());
+    }
   }
 
   // TODO require duel accept, add time/rules/arena
-  private void onDuel(Player player, Player other) {
-    if (player.equals(other)) {
+  private void onDuel(Player player, Participant other) {
+    if (other.contains(player)) {
       Message.SELF_BATTLE.send(player);
       return;
     }
-    if (game.battleManager().isInBattle(player)) {
+    if (game.battleManager().inBattle(player)) {
       Message.SELF_IN_BATTLE.send(player);
       return;
-    } else if (game.battleManager().isInBattle(other)) {
-      Message.OTHER_IN_BATTLE.send(player, other.getName());
+    } else if (other.members().anyMatch(game.battleManager()::inBattle)) {
+      Message.OTHER_IN_BATTLE.send(player, other.name());
       return;
     }
-    Battle.createBattle(List.of(Participant.of(player), Participant.of(other)))
-      .ifPresent(b -> b.start(game.battleManager()));
+    Battle.createBattle(List.of(Participant.of(player), other))
+      .ifPresent(b -> b.start(game.battleManager(), new ScoreVictory(3)));
   }
 }

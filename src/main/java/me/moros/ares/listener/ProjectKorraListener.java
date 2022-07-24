@@ -19,7 +19,13 @@
 
 package me.moros.ares.listener;
 
+import me.moros.ares.game.Game;
 import org.bukkit.event.Listener;
 
 public class ProjectKorraListener implements Listener {
+  private final Game game;
+
+  public ProjectKorraListener(Game game) {
+    this.game = game;
+  }
 }

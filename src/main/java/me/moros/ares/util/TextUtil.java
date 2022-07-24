@@ -17,35 +17,19 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.util;
 
-import java.util.stream.Stream;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
-import net.kyori.adventure.text.Component;
+public final class TextUtil {
+  private static final Pattern NON_ALPHABETICAL = Pattern.compile("[^A-Za-z]");
 
-// TODO create implementations
-public interface Tournament {
-  String name();
+  private TextUtil() {
+  }
 
-  Component displayName();
-
-  boolean isOpen();
-
-  boolean start();
-
-  boolean finish();
-
-  boolean addParticipant(Participant participant);
-
-  boolean removeParticipant(Participant participant);
-
-  boolean hasParticipant(Participant participant);
-
-  Stream<Participant> participants();
-
-  boolean addBattle(Battle battle);
-
-  Stream<Battle> currentBattles();
-
-  int size();
+  public static String sanitizeInput(String input) {
+    String output = NON_ALPHABETICAL.matcher(input).replaceAll("").toLowerCase(Locale.ROOT);
+    return output.length() > 16 ? output.substring(0, 16) : output;
+  }
 }

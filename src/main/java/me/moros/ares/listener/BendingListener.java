@@ -19,6 +19,7 @@
 
 package me.moros.ares.listener;
 
+import me.moros.ares.game.Game;
 import me.moros.bending.event.ActionLimitEvent;
 import me.moros.bending.event.BendingDamageEvent;
 import org.bukkit.event.EventHandler;
@@ -26,6 +27,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 public class BendingListener implements Listener {
+  private final Game game;
+
+  public BendingListener(Game game) {
+    this.game = game;
+  }
+
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
   public void onBendingDamage(BendingDamageEvent event) {
   }

@@ -1,20 +1,20 @@
 /*
- *   Copyright 2020 Moros <https://github.com/PrimordialMoros>
+ * Copyright 2020-2022 Moros
  *
- *    This file is part of Ares.
+ * This file is part of Ares.
  *
- *   Ares is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU Affero General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ * Ares is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   Ares is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU Affero General Public License for more details.
+ * Ares is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU Affero General Public License
- *   along with Ares.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
 package me.moros.ares;
@@ -51,15 +51,15 @@ public class Ares extends JavaPlugin {
       logger.error(e.getMessage(), e);
       getServer().getPluginManager().disablePlugin(this);
     }
-    getServer().getPluginManager().registerEvents(new ParticipantListener(), this);
+    getServer().getPluginManager().registerEvents(new ParticipantListener(game), this);
     registerHooks();
   }
 
   private void registerHooks() {
     if (getServer().getPluginManager().isPluginEnabled("Bending")) {
-      getServer().getPluginManager().registerEvents(new BendingListener(), this);
+      getServer().getPluginManager().registerEvents(new BendingListener(game), this);
     } else if (getServer().getPluginManager().isPluginEnabled("ProjectKorra")) {
-      getServer().getPluginManager().registerEvents(new ProjectKorraListener(), this);
+      getServer().getPluginManager().registerEvents(new ProjectKorraListener(game), this);
     }
   }
 

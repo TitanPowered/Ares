@@ -1,93 +1,70 @@
 /*
- *   Copyright 2020 Moros <https://github.com/PrimordialMoros>
+ * Copyright 2020-2022 Moros
  *
- *    This file is part of Ares.
+ * This file is part of Ares.
  *
- *   Ares is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU Affero General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ * Ares is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   Ares is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU Affero General Public License for more details.
+ * Ares is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- *   You should have received a copy of the GNU Affero General Public License
- *   along with Ares.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
 package me.moros.ares.model;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.victory.BattleVictory;
 import org.bukkit.entity.LivingEntity;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-// TODO link to specific arena
-public class Battle {
-  private final Map<Participant, BattleScore> parties;
-  private ScoreEntry top;
+public interface Battle extends Iterable<Participant> {
+  Map<Participant, BattleScore> scores();
 
-  private boolean started = false;
+  Stream<Participant> participants();
 
-  private Battle(Collection<Participant> parties) {
-    this(parties, BattleScore.ZERO);
-  }
+  boolean setScore(Participant participant, UnaryOperator<BattleScore> function);
 
-  private Battle(Collection<Participant> parties, BattleScore startingScore) {
-    this.parties = parties.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> startingScore));
-  }
+  Entry<Participant, BattleScore> topEntry();
 
-  public Map<Participant, BattleScore> scores() {
-    return Map.copyOf(parties);
-  }
+  boolean start(BattleManager manager, BattleVictory condition);
 
-  public Collection<Participant> participants() {
-    return Set.copyOf(parties.keySet());
-  }
+  Map<Participant, BattleScore> complete(BattleManager manager);
 
-  public boolean setScore(Participant participant, BattleScore score) {
-    BattleScore prev = parties.get(participant);
-    if (prev == null || prev.getScore() >= score.getScore()) return false;
-    if (score.getScore() > top.getBattleScore().getScore()) top = new ScoreEntry(participant, score);
-    parties.put(participant, score);
-    return true;
-  }
+  Stage stage();
 
-  public @Nullable ScoreEntry topEntry() {
-    return top;
-  }
+  @Nullable Participant testVictory();
 
-  public boolean start(BattleManager manager) {
-    if (started) {
-      return false;
-    }
-    manager.addBattle(this);
-    // TODO add preparation steps
-    return started = true;
-  }
-
-  public Map<Participant, BattleScore> complete(BattleManager manager) {
-    // TODO cleanup after battle
-    manager.clearBattle(this);
-    return scores();
-  }
-
-  public static Optional<Battle> createBattle(Collection<Participant> parties) {
-    if (parties.stream().allMatch(Participant::isValid)) {
+  static Optional<Battle> createBattle(Collection<Participant> parties) {
+    if (!parties.isEmpty() && parties.stream().allMatch(Participant::isValid)) {
       Collection<LivingEntity> col = parties.stream().flatMap(Participant::members).toList();
-      Set<LivingEntity> unique = Set.copyOf(col);
-      if (col.size() == unique.size()) {
-        return Optional.of(new Battle(parties));
+      int unique = Set.copyOf(col).size();
+      if (col.size() == unique) {
+        Battle battle = unique > 1 ? new BattleImpl(parties) : new DefaultedBattle(parties.iterator().next());
+        return Optional.of(battle);
       }
     }
     return Optional.empty();
+  }
+
+  enum Stage {
+    CREATED,
+    STARTING,
+    ONGOING,
+    COMPLETED
   }
 }

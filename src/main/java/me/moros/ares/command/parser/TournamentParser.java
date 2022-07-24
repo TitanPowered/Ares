@@ -44,10 +44,10 @@ public final class TournamentParser implements ArgumentParser<CommandSender, Tou
     } else {
       tournament = Registries.TOURNAMENTS.get(input);
     }
-    if (tournament != null) {
+    if (tournament != null && tournament.isOpen()) {
       return ArgumentParseResult.success(tournament);
     }
-    return ArgumentParseResult.failure(new Throwable("Could not find tournament " + input));
+    return ArgumentParseResult.failure(new Throwable("Could not any open tournaments matching " + input));
   }
 
   @Override
