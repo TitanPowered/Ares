@@ -54,17 +54,28 @@ public interface Message {
 
   Args1<String> TOURNAMENT_CREATE_INVALID_NAME = name -> translatable("ares.command.tournament.create.invalid", RED)
     .args(text(name));
+  Args1<String> TOURNAMENT_CREATE_SUCCESS = name -> translatable("ares.command.tournament.create.success", GREEN)
+    .args(text(name));
+  Args1<String> TOURNAMENT_CREATE_FAIL = name -> translatable("ares.command.tournament.create.fail", RED)
+    .args(text(name));
   Args1<Component> TOURNAMENT_START_SUCCESS = tournament -> translatable("ares.command.tournament.start.success", GREEN)
     .args(tournament);
   Args1<Integer> TOURNAMENT_START_ODD = size -> translatable("ares.command.tournament.start.warning", YELLOW)
     .args(text(size));
   Args1<Component> TOURNAMENT_START_FAIL = tournament -> translatable("ares.command.tournament.start.fail", RED)
     .args(tournament);
+  Args1<Component> TOURNAMENT_CLOSED = tournament -> translatable("ares.command.tournament.closed", YELLOW)
+    .args(tournament);
+  Args1<Component> TOURNAMENT_SKIP = tournament -> translatable("ares.command.tournament.skip", YELLOW)
+    .args(tournament);
 
   Args0 SELF_BATTLE = () -> translatable("ares.command.duel.battle.self", YELLOW);
   Args0 SELF_IN_BATTLE = () -> translatable("ares.command.duel.in-battle.self", YELLOW);
   Args1<String> OTHER_IN_BATTLE = name -> translatable("ares.command.duel.in-battle.other", YELLOW)
     .args(text(name, GOLD));
+  Args1<String> LEAVE_BATTLE_SUCCESS = name -> translatable("ares.command.duel.leave.success", YELLOW)
+    .args(text(name));
+  Args0 LEAVE_BATTLE_FAIL = () -> translatable("ares.command.duel.leave.fail", YELLOW);
 
   Args2<String, String> VERSION_COMMAND_HOVER = (author, link) -> translatable("ares.command.version.hover", DARK_AQUA)
     .args(text(author, GREEN), text(link, GREEN));

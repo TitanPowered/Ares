@@ -101,6 +101,9 @@ public class ParticipantListener implements Listener {
         }
       });
     }
+    if (!(entity instanceof Player)) {
+      Registries.PARTICIPANTS.invalidate(entity.getUniqueId());
+    }
   }
 
   private @Nullable LivingEntity killer(LivingEntity entity) {

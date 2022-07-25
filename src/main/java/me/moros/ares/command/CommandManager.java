@@ -25,7 +25,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import cloud.commandframework.execution.AsynchronousCommandExecutionCoordinator;
+import cloud.commandframework.execution.CommandExecutionCoordinator;
 import cloud.commandframework.execution.CommandExecutionHandler;
 import cloud.commandframework.execution.preprocessor.CommandPreprocessingContext;
 import cloud.commandframework.extra.confirmation.CommandConfirmationManager;
@@ -50,7 +50,7 @@ public final class CommandManager extends PaperCommandManager<CommandSender> {
   private final CommandConfirmationManager<CommandSender> confirmationManager;
 
   public CommandManager(Ares plugin, Game game) throws Exception {
-    super(plugin, AsynchronousCommandExecutionCoordinator.<CommandSender>newBuilder().withSynchronousParsing().build(), Function.identity(), Function.identity());
+    super(plugin, CommandExecutionCoordinator.simpleCoordinator(), Function.identity(), Function.identity());
     registerParsers();
     registerExceptionHandler();
     registerAsynchronousCompletions();

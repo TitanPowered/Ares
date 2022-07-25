@@ -35,7 +35,7 @@ dependencies {
     implementation("cloud.commandframework","cloud-minecraft-extras", "1.7.0") {
         exclude(group = "net.kyori")
     }
-    implementation("org.spongepowered", "configurate-gson", "4.1.2")
+    implementation("org.spongepowered", "configurate-hocon", "4.1.2")
     compileOnly("org.checkerframework", "checker-qual", "3.21.3")
     compileOnly("io.papermc.paper", "paper-api", "1.18.2-R0.1-SNAPSHOT")
 }

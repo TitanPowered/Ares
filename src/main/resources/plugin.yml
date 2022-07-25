@@ -5,3 +5,23 @@ version: ${pluginVersion}
 main: me.moros.ares.Ares
 softdepend: [ProjectKorra, Bending, Gaia]
 api-version: 1.18
+permissions:
+  ares.player:
+    default: true
+    description: Grants access to all player Ares commands
+    children:
+      ares.command.help: true
+      ares.command.version: true
+      ares.command.list: true
+      ares.command.duel: true
+      ares.command.leave: true
+      ares.command.join: true
+  ares.admin:
+    default: op
+    description: Grants access to all administrative Ares commands
+    children:
+      ares.player: true
+      ares.command.create: true
+      ares.command.reload: true
+      ares.command.skip: true
+      ares.command.debug: true

@@ -40,18 +40,18 @@ public final class TournamentParser implements ArgumentParser<CommandSender, Tou
     inputQueue.remove();
     Tournament tournament;
     if (input.equalsIgnoreCase("default")) {
-      tournament = Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).findFirst().orElse(null);
+      tournament = Registries.TOURNAMENTS.stream().findFirst().orElse(null);
     } else {
       tournament = Registries.TOURNAMENTS.get(input);
     }
-    if (tournament != null && tournament.isOpen()) {
+    if (tournament != null) {
       return ArgumentParseResult.success(tournament);
     }
-    return ArgumentParseResult.failure(new Throwable("Could not any open tournaments matching " + input));
+    return ArgumentParseResult.failure(new Throwable("Could not any tournaments matching " + input));
   }
 
   @Override
   public List<String> suggestions(final CommandContext<CommandSender> commandContext, final String input) {
-    return Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).map(Tournament::name).toList();
+    return Registries.TOURNAMENTS.stream().map(Tournament::name).toList();
   }
 }

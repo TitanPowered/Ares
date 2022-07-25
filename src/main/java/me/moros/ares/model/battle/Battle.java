@@ -29,6 +29,8 @@ import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
 import me.moros.ares.model.participant.Participant;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.entity.LivingEntity;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -64,9 +66,19 @@ public interface Battle extends Iterable<Participant> {
   }
 
   enum Stage {
-    CREATED,
-    STARTING,
-    ONGOING,
-    COMPLETED
+    CREATED(NamedTextColor.WHITE),
+    STARTING(NamedTextColor.RED),
+    ONGOING(NamedTextColor.YELLOW),
+    COMPLETED(NamedTextColor.GREEN);
+
+    private final TextColor color;
+
+    Stage(TextColor color) {
+      this.color = color;
+    }
+
+    public TextColor color() {
+      return color;
+    }
   }
 }

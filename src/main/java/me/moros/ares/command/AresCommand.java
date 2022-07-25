@@ -22,6 +22,7 @@ package me.moros.ares.command;
 import java.util.Collection;
 import java.util.List;
 
+import cloud.commandframework.arguments.standard.EnumArgument;
 import cloud.commandframework.arguments.standard.StringArgument;
 import cloud.commandframework.arguments.standard.StringArgument.StringMode;
 import cloud.commandframework.meta.CommandMeta;
@@ -30,6 +31,7 @@ import me.moros.ares.game.Game;
 import me.moros.ares.locale.Message;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.BattleRules;
+import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.model.tournament.SimpleTournament;
 import me.moros.ares.model.tournament.Tournament;
@@ -39,7 +41,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 public class AresCommand {
@@ -104,6 +111,29 @@ public class AresCommand {
         .argument(participantArg.build())
         .argument(rulesArg.build())
         .handler(c -> onDuel((Player) c.getSender(), c.get("participant"), c.get("rules")))
+      ).command(builder.literal("details")
+        .meta(CommandMeta.DESCRIPTION, "View details about a tournament")
+        .permission(CommandPermissions.LIST)
+        .argument(tournamentArg.build())
+        .handler(c -> onDetails(c.getSender(), c.get("tournament")))
+      ).command(builder.literal("skip")
+        .meta(CommandMeta.DESCRIPTION, "Skip the current battle for the specified tournament")
+        .permission(CommandPermissions.SKIP)
+        .argument(tournamentArg.build())
+        .handler(c -> onSkip(c.getSender(), c.get("tournament")))
+      ).command(builder.literal("leave")
+        .meta(CommandMeta.DESCRIPTION, "Leave the current battle")
+        .permission(CommandPermissions.LEAVE)
+        .senderType(Player.class)
+        .handler(c -> onLeave((Player) c.getSender()))
+      ).command(builder.literal("debugspawn")
+        .meta(CommandMeta.DESCRIPTION, "Spawn and register a test entity")
+        .permission(CommandPermissions.DEBUG)
+        .senderType(Player.class)
+        .argument(tournamentArg.asRequired().build())
+        .argument(EnumArgument.of(EntityType.class, "type"))
+        .argument(StringArgument.single("name"))
+        .handler(c -> onDebug((Player) c.getSender(), c.get("tournament"), c.get("type"), c.get("name")))
       ).command(builder.literal("help", "h")
         .meta(CommandMeta.DESCRIPTION, "View info about a command")
         .permission(CommandPermissions.HELP)
@@ -127,19 +157,25 @@ public class AresCommand {
   }
 
   private void onList(CommandSender user) {
-    Collection<Tournament> tournaments = Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).toList();
+    Collection<Tournament> tournaments = Registries.TOURNAMENTS.stream().toList();
     if (tournaments.isEmpty()) {
       Message.TOURNAMENT_LIST_EMPTY.send(user);
       return;
     }
     Message.TOURNAMENT_LIST_HEADER.send(user);
     for (Tournament tournament : tournaments) {
-      user.sendMessage(Component.text("> ", NamedTextColor.DARK_GRAY).append(tournament.displayName()));
+      Component entry = Component.text("> ", NamedTextColor.DARK_GRAY)
+        .append(tournament.displayName().decoration(TextDecoration.STRIKETHROUGH, !tournament.isOpen()));
+      user.sendMessage(entry);
     }
   }
 
   // TODO allow specifying team members?
   private void onJoin(Player player, Tournament tournament) {
+    if (!tournament.isOpen()) {
+      Message.TOURNAMENT_CLOSED.send(player, tournament.displayName());
+      return;
+    }
     Participant participant = Participant.of(player);
     if (tournament.hasParticipant(participant)) {
       participant.sendMessage(Message.TOURNAMENT_ALREADY_JOINED.build(tournament.displayName()));
@@ -153,17 +189,24 @@ public class AresCommand {
   }
 
   private void onCreate(CommandSender user, String name) {
-    // TODO Offer tournament presets and build instead of providing simple tournament
     String validatedName = TextUtil.sanitizeInput(name);
     if (validatedName.isEmpty()) {
       Message.TOURNAMENT_CREATE_INVALID_NAME.send(user, name);
       return;
     }
     Tournament tournament = new SimpleTournament(validatedName, plugin.configManager().properties().battleInterval());
-    Registries.TOURNAMENTS.register(tournament);
+    if (Registries.TOURNAMENTS.register(tournament)) {
+      Message.TOURNAMENT_CREATE_SUCCESS.send(user, name);
+    } else {
+      Message.TOURNAMENT_CREATE_FAIL.send(user, name);
+    }
   }
 
   private void onStart(CommandSender user, Tournament tournament, BattleRules rules) {
+    if (!tournament.isOpen()) {
+      Message.TOURNAMENT_CLOSED.send(user, tournament.displayName());
+      return;
+    }
     if (tournament.start(rules)) {
       Message.TOURNAMENT_START_SUCCESS.send(user, tournament.displayName());
       int size = tournament.size();
@@ -193,5 +236,49 @@ public class AresCommand {
       long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
       plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> battle.complete(game.battleManager()), delay);
     }
+  }
+
+  private void onDetails(CommandSender user, Tournament tournament) {
+    tournament.details().forEach(user::sendMessage);
+  }
+
+  private void onSkip(CommandSender user, Tournament tournament) {
+    tournament.skip(game.battleManager());
+    Message.TOURNAMENT_SKIP.send(user, tournament.displayName());
+  }
+
+  private void onLeave(Player player) {
+    Battle battle = game.battleManager().battle(player);
+    if (battle == null) {
+      Message.LEAVE_BATTLE_FAIL.send(player);
+      return;
+    }
+    battle.forEachEntry((p, d) -> {
+      if (!p.contains(player)) {
+        d.score(BattleScore::increment);
+      }
+      Message.LEAVE_BATTLE_SUCCESS.send(p, player.getName());
+    });
+    battle.complete(game.battleManager());
+  }
+
+  private void onDebug(Player player, Tournament tournament, EntityType type, String name) {
+    Block block = player.getTargetBlockExact(32);
+    if (block == null) {
+      Location origin = player.getEyeLocation();
+      block = origin.add(origin.getDirection().multiply(5)).getBlock();
+    }
+    if (type.isAlive()) {
+      LivingEntity entity = (LivingEntity) player.getWorld().spawnEntity(block.getLocation(), type);
+      if (entity.isValid()) {
+        entity.customName(Component.text(name));
+        entity.setCustomNameVisible(true);
+        Participant participant = Participant.of(entity);
+        Registries.PARTICIPANTS.register(participant);
+        tournament.addParticipant(participant);
+        return;
+      }
+    }
+    player.sendMessage(Component.text("Unable to spawn entity"));
   }
 }

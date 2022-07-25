@@ -37,8 +37,6 @@ import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class SimpleTournament implements Tournament {
@@ -62,11 +60,6 @@ public class SimpleTournament implements Tournament {
   @Override
   public String name() {
     return name;
-  }
-
-  @Override
-  public Component displayName() {
-    return Component.text(name, NamedTextColor.AQUA);
   }
 
   @Override
@@ -98,39 +91,39 @@ public class SimpleTournament implements Tournament {
     nextBattle(lastRound);
     if (currentBattle != null) {
       switch (currentBattle.stage()) {
-        case CREATED -> manager.addBattle(currentBattle);
+        case CREATED -> currentBattle.start(manager, rules);
         case ONGOING -> {
           Participant winner = currentBattle.testVictory();
           if (winner == null) {
             return;
           }
-          currentBattle.complete(manager);
-          nextBattleTime = time + delay;
+          scoreMap.computeIfPresent(winner, (p, s) -> s.increment());
+          skip(manager);
         }
         case COMPLETED -> nextBattle(lastRound);
       }
     }
   }
 
-  private void nextBattle(@Nullable Round current) {
-    if (current == null) {
+  private void nextBattle(@Nullable Round round) {
+    if (round == null) {
       finish();
       return;
     }
-    if (current.iterator().hasNext()) {
-      currentBattle = current.iterator().next();
+    if (round.iterator().hasNext()) {
+      currentBattle = round.iterator().next();
     } else {
-      generateRound();
-      nextBattle(rounds.peekLast());
+      nextBattle(generateRound());
     }
   }
 
-  private void generateRound() {
+  private @Nullable Round generateRound() {
     Round lastRound = rounds.peekLast();
     Round nextRound = lastRound == null ? new Round(scoreMap.keySet(), rules.teamAmount()) : lastRound.nextRound(rules.teamAmount());
     if (nextRound != null) {
       rounds.addLast(nextRound);
     }
+    return nextRound;
   }
 
   @Override
@@ -183,6 +176,14 @@ public class SimpleTournament implements Tournament {
     return scoreMap.size();
   }
 
+  @Override
+  public void skip(BattleManager manager) {
+    if (currentBattle != null) {
+      currentBattle.complete(manager);
+      nextBattleTime = System.currentTimeMillis() + delay;
+    }
+  }
+
   private static final class Round implements Iterable<Battle> {
     private final Collection<Battle> battles;
     private final int size;
@@ -198,7 +199,7 @@ public class SimpleTournament implements Tournament {
         int end = Math.min(size, i + participantsPerBattle);
         battles.add(Battle.createBattle(randomized.subList(i, end)).orElseThrow());
       }
-      iterator = resetIterator();
+      iterator = battles.iterator();
     }
 
     public int size() {
@@ -217,10 +218,6 @@ public class SimpleTournament implements Tournament {
         }
       }
       return null;
-    }
-
-    private Iterator<Battle> resetIterator() {
-      return Collections.unmodifiableCollection(battles).iterator();
     }
 
     @Override

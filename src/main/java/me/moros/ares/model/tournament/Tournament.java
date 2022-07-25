@@ -19,18 +19,34 @@
 
 package me.moros.ares.model.tournament;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.BattleRules;
+import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
+
+import static net.kyori.adventure.text.Component.*;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public interface Tournament {
   String name();
 
-  Component displayName();
+  default Component displayName() {
+    Component hover = text().append(text("Participants: ", AQUA))
+      .append(text(size(), GOLD)).append(newline())
+      .append(text("Registrations: ", AQUA))
+      .append(isOpen() ? text("Open", GREEN) : text("Closed", RED)).build();
+    return text().append(text(name(), AQUA)).hoverEvent(HoverEvent.showText(hover)).build();
+  }
 
   boolean isOpen();
 
@@ -53,4 +69,22 @@ public interface Tournament {
   Stream<Battle> currentBattles();
 
   int size();
+
+  void skip(BattleManager manager);
+
+  default Collection<Component> details() {
+    Collection<Component> components = new ArrayList<>();
+    components.add(displayName());
+    for (Battle battle : currentBattles().toList()) {
+      BattleScore top = battle.topEntry().getValue();
+      Collection<Component> participants = new ArrayList<>();
+      battle.forEachEntry((p, d) -> {
+        Style style = Style.style().color(battle.stage().color())
+          .decoration(TextDecoration.BOLD, d.score().compareTo(top) >= 0).build();
+        participants.add(text(p.name(), style));
+      });
+      components.add(join(JoinConfiguration.separator(text(" vs ")), participants));
+    }
+    return components;
+  }
 }

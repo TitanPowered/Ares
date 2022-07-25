@@ -27,14 +27,16 @@ public final class CommandPermissions {
   }
 
   public static final CommandPermission HELP = create("help");
+  public static final CommandPermission VERSION = create("version");
   public static final CommandPermission LIST = create("list");
+  public static final CommandPermission DUEL = create("duel");
+  public static final CommandPermission LEAVE = create("leave");
   public static final CommandPermission JOIN = create("join");
   public static final CommandPermission CREATE = create("create");
-  public static final CommandPermission DUEL = create("duel");
-  public static final CommandPermission VERSION = create("version");
   public static final CommandPermission RELOAD = create("reload");
-  public static final CommandPermission BATTLE = create("battle");
-  public static final CommandPermission TOURNAMENT = create("tournament");
+  public static final CommandPermission SKIP = create("skip");
+  public static final CommandPermission DEBUG = create("debug");
+
 
   private static Permission create(String node) {
     return Permission.of("ares.command." + node);

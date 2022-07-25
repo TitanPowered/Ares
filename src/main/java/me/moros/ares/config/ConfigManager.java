@@ -19,22 +19,31 @@
 
 package me.moros.ares.config;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
 import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.model.battle.BattleRules.BattleRulesBuilder;
 import me.moros.ares.registry.Registries;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
-import org.spongepowered.configurate.BasicConfigurationNode;
-import org.spongepowered.configurate.gson.GsonConfigurationLoader;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 import org.spongepowered.configurate.reference.ConfigurationReference;
 import org.spongepowered.configurate.reference.WatchServiceListener;
 
@@ -42,25 +51,31 @@ public final class ConfigManager {
   public static final String SUFFIX = ".ares";
 
   private final Logger logger;
-  private final String directory;
+  private final Path rulesDirectory;
   private final WatchServiceListener listener;
-  private final ConfigurationReference<BasicConfigurationNode> reference;
+  private final ConfigurationReference<CommentedConfigurationNode> reference;
+  private final Gson gson;
   private final Properties properties;
 
   public ConfigManager(Logger logger, String directory) {
     this.logger = logger;
-    this.directory = directory;
-    Path path = Path.of(this.directory, "ares.conf");
+    this.rulesDirectory = Path.of(directory, "rules");
+    Path path = Path.of(directory, "ares.conf");
     try {
+      Files.createDirectories(rulesDirectory);
       listener = WatchServiceListener.create();
-      reference = listener.listenToConfiguration(f -> GsonConfigurationLoader.builder().path(f).build(), path);
+      reference = listener.listenToConfiguration(f -> HoconConfigurationLoader.builder().path(f).build(), path);
       properties = config().get(Properties.class);
-      BattleRulesBuilder builder = config().node("default").get(BattleRulesBuilder.class);
-      Registries.RULES.register(Objects.requireNonNull(builder == null ? null : builder.build()));
-      loadAllAsync();
+      loadAllAsync().thenRun(() -> logger.info("Loaded " + Registries.RULES.size() + " battle rules"));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    BattleRules defaultRules = Objects.requireNonNull(BattleRules.builder("default").build());
+    if (!fileExists("default")) {
+      saveRules(defaultRules);
+    }
+    Registries.RULES.register(defaultRules);
   }
 
   public void save() {
@@ -81,7 +96,7 @@ public final class ConfigManager {
     }
   }
 
-  public BasicConfigurationNode config() {
+  public CommentedConfigurationNode config() {
     return reference.node();
   }
 
@@ -100,7 +115,7 @@ public final class ConfigManager {
     IOException firstError = null;
     int errorCount = 0;
     Collection<Path> paths = new ArrayList<>();
-    try (Stream<Path> stream = Files.walk(Path.of(directory, "types"), 1)) {
+    try (Stream<Path> stream = Files.walk(rulesDirectory, 1)) {
       stream.filter(this::isValidFile).forEach(paths::add);
     } catch (IOException e) {
       firstError = e;
@@ -129,9 +144,29 @@ public final class ConfigManager {
   }
 
   private @Nullable BattleRules loadRules(Path path) throws IOException {
-    GsonConfigurationLoader loader = GsonConfigurationLoader.builder().path(path).build();
-    BattleRulesBuilder builder = loader.load().get(BattleRulesBuilder.class);
-    return builder == null ? null : builder.build();
+    JsonReader reader = new JsonReader(new InputStreamReader(new FileInputStream(path.toFile()), StandardCharsets.UTF_8));
+    BattleRulesBuilder builder = gson.fromJson(reader, BattleRulesBuilder.class);
+    if (builder == null) {
+      logger.warn("Invalid currency data: " + path);
+    } else {
+      return builder.build();
+    }
+    return null;
+  }
+
+  private CompletableFuture<Boolean> saveRules(BattleRules rules) {
+    return CompletableFuture.supplyAsync(() -> {
+      Path path = rulesDirectory.resolve(rules.name() + SUFFIX);
+      try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(path.toFile()), StandardCharsets.UTF_8)) {
+        gson.toJson(rules, writer);
+        return true;
+      } catch (IOException e) {
+        throw new CompletionException(e);
+      }
+    }).exceptionally(e -> {
+      e.printStackTrace();
+      return false;
+    });
   }
 
   private boolean isValidFile(Path path) {
@@ -139,7 +174,6 @@ public final class ConfigManager {
   }
 
   private boolean fileExists(String name) {
-    Path file = Path.of(directory, name + SUFFIX);
-    return Files.exists(file);
+    return Files.exists(rulesDirectory.resolve(name + SUFFIX));
   }
 }

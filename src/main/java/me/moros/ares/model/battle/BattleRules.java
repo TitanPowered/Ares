@@ -100,7 +100,7 @@ public final class BattleRules {
   }
 
   public static BattleRulesBuilder builder(String name) {
-    return builder(Objects.requireNonNull(name));
+    return new BattleRulesBuilder(Objects.requireNonNull(name));
   }
 
   @ConfigSerializable
@@ -112,8 +112,8 @@ public final class BattleRules {
     private long duration = 0;
     private long preparationTime = 3000;
     private String arena = "pvp";
-    private List<String> steps = List.of("cmd:test");
-    private List<String> cleanupSteps = List.of("cmd:test2");
+    private List<String> steps = List.of("msg:start");
+    private List<String> cleanupSteps = List.of("msg:finish");
 
     private BattleRulesBuilder(String name) {
       this.name = name;
