@@ -35,12 +35,14 @@ import cloud.commandframework.minecraft.extras.MinecraftHelp;
 import cloud.commandframework.paper.PaperCommandManager;
 import io.leangen.geantyref.TypeToken;
 import me.moros.ares.Ares;
+import me.moros.ares.command.parser.BattleRulesParser;
 import me.moros.ares.command.parser.ParticipantParser;
 import me.moros.ares.command.parser.TournamentParser;
 import me.moros.ares.game.Game;
 import me.moros.ares.locale.Message;
-import me.moros.ares.model.Participant;
-import me.moros.ares.model.Tournament;
+import me.moros.ares.model.battle.BattleRules;
+import me.moros.ares.model.participant.Participant;
+import me.moros.ares.model.tournament.Tournament;
 import org.bukkit.command.CommandSender;
 
 public final class CommandManager extends PaperCommandManager<CommandSender> {
@@ -70,6 +72,7 @@ public final class CommandManager extends PaperCommandManager<CommandSender> {
   private void registerParsers() {
     parserRegistry().registerParserSupplier(TypeToken.get(Participant.class), options -> new ParticipantParser());
     parserRegistry().registerParserSupplier(TypeToken.get(Tournament.class), options -> new TournamentParser());
+    parserRegistry().registerParserSupplier(TypeToken.get(BattleRules.class), options -> new BattleRulesParser());
   }
 
   private void registerExceptionHandler() {

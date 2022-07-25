@@ -17,30 +17,40 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model.victory;
+package me.moros.ares.model.tournament;
 
+import java.util.stream.Stream;
+
+import me.moros.ares.game.BattleManager;
 import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.model.participant.Participant;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import net.kyori.adventure.text.Component;
 
-public class TimedVictory implements BattleVictory {
-  private final long endTime;
+public interface Tournament {
+  String name();
 
-  private TimedVictory(long duration) {
-    this.endTime = System.currentTimeMillis() + duration;
-  }
+  Component displayName();
 
-  public @Nullable Participant apply(Battle battle) {
-    if (System.currentTimeMillis() >= endTime) {
-      return battle.topEntry().getKey();
-    }
-    return null;
-  }
+  boolean isOpen();
 
-  public static BattleVictory of(long duration) {
-    if (duration <= 0) {
-      return b -> null;
-    }
-    return new TimedVictory(duration);
-  }
+  boolean start(BattleRules rules);
+
+  void update(BattleManager manager);
+
+  boolean finish();
+
+  boolean addParticipant(Participant participant);
+
+  boolean removeParticipant(Participant participant);
+
+  boolean hasParticipant(Participant participant);
+
+  Stream<Participant> participants();
+
+  boolean addBattle(Battle battle);
+
+  Stream<Battle> currentBattles();
+
+  int size();
 }

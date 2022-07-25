@@ -21,8 +21,8 @@ package me.moros.ares.model.victory;
 
 import java.util.function.Function;
 
-import me.moros.ares.model.Battle;
-import me.moros.ares.model.Participant;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.participant.Participant;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 @FunctionalInterface

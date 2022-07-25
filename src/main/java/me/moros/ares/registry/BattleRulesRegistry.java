@@ -28,50 +28,54 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-import me.moros.ares.model.tournament.Tournament;
+import me.moros.ares.model.battle.BattleRules;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public final class TournamentRegistry implements Registry<Tournament> {
-  private final Map<String, Tournament> tournaments;
+public final class BattleRulesRegistry implements Registry<BattleRules> {
+  private final Map<String, BattleRules> registry;
 
-  TournamentRegistry() {
-    tournaments = new ConcurrentHashMap<>();
+  BattleRulesRegistry() {
+    registry = new ConcurrentHashMap<>();
   }
 
-  public boolean register(Tournament tournament) {
-    if (!contains(tournament)) {
-      tournaments.put(tournament.name(), tournament);
+  public boolean register(BattleRules rules) {
+    if (!contains(rules)) {
+      registry.put(rules.name(), rules);
       return true;
     }
     return false;
   }
 
-  public boolean invalidate(Tournament tournament) {
-    return tournaments.remove(tournament.name()) != null;
+  public boolean registerDefault(BattleRules rules) {
+    if (!contains(rules)) {
+      registry.put(rules.name(), rules);
+      return true;
+    }
+    return false;
   }
 
-  public boolean contains(Tournament tournament) {
-    return tournaments.containsKey(tournament.name());
+  public boolean contains(BattleRules rules) {
+    return registry.containsKey(rules.name());
   }
 
-  public @Nullable Tournament get(@Nullable String id) {
-    return (id == null || id.isEmpty()) ? null : tournaments.get(id.toLowerCase(Locale.ROOT));
+  public @Nullable BattleRules get(@Nullable String id) {
+    return (id == null || id.isEmpty()) ? null : registry.get(id.toLowerCase(Locale.ROOT));
   }
 
   public int size() {
-    return tournaments.size();
+    return registry.size();
   }
 
   public Collection<String> keys() {
-    return Set.copyOf(tournaments.keySet());
+    return Set.copyOf(registry.keySet());
   }
 
-  public Stream<Tournament> stream() {
-    return tournaments.values().stream();
+  public Stream<BattleRules> stream() {
+    return registry.values().stream();
   }
 
   @Override
-  public Iterator<Tournament> iterator() {
-    return Collections.unmodifiableCollection(tournaments.values()).iterator();
+  public Iterator<BattleRules> iterator() {
+    return Collections.unmodifiableCollection(registry.values()).iterator();
   }
 }

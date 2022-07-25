@@ -20,6 +20,7 @@
 package me.moros.ares;
 
 import me.moros.ares.command.CommandManager;
+import me.moros.ares.config.ConfigManager;
 import me.moros.ares.game.Game;
 import me.moros.ares.listener.BendingListener;
 import me.moros.ares.listener.ParticipantListener;
@@ -28,22 +29,28 @@ import me.moros.ares.locale.TranslationManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 
-// TODO add Gaia integration
 public class Ares extends JavaPlugin {
   private String author;
   private String version;
 
   private Logger logger;
+  private ConfigManager configManager;
   private TranslationManager translationManager;
   private Game game;
 
   @Override
-  public void onEnable() {
+  public void onLoad() {
     logger = getSLF4JLogger();
     author = getDescription().getAuthors().get(0);
     version = getDescription().getVersion();
 
-    translationManager = new TranslationManager(logger, getDataFolder().toString());
+    String dir = getDataFolder().toString();
+    configManager = new ConfigManager(logger, dir);
+    translationManager = new TranslationManager(logger, dir);
+  }
+
+  @Override
+  public void onEnable() {
     game = new Game(this);
     try {
       new CommandManager(this, game);
@@ -52,7 +59,13 @@ public class Ares extends JavaPlugin {
       getServer().getPluginManager().disablePlugin(this);
     }
     getServer().getPluginManager().registerEvents(new ParticipantListener(game), this);
+    configManager.save();
     registerHooks();
+  }
+
+  @Override
+  public void onDisable() {
+    configManager.close();
   }
 
   private void registerHooks() {
@@ -73,6 +86,10 @@ public class Ares extends JavaPlugin {
 
   public Logger logger() {
     return logger;
+  }
+
+  public ConfigManager configManager() {
+    return configManager;
   }
 
   public TranslationManager translationManager() {

@@ -17,7 +17,7 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.model.tournament;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -30,21 +30,31 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-import me.moros.ares.model.Battle.Stage;
+import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.Battle.Stage;
+import me.moros.ares.model.battle.BattleRules;
+import me.moros.ares.model.battle.BattleScore;
+import me.moros.ares.model.participant.Participant;
+import me.moros.ares.registry.Registries;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class SimpleTournament implements Tournament {
-  private static final int PARTICIPANTS_PER_BATTLE = 2;
-
   private final String name;
   private final Map<Participant, BattleScore> scoreMap;
   private final Deque<Round> rounds;
+  private final long delay;
+
+  private Battle currentBattle;
+  private BattleRules rules;
+  private long nextBattleTime;
   private boolean open = true;
 
-  public SimpleTournament(String name) {
+  public SimpleTournament(String name, long delay) {
     this.name = name;
+    this.delay = delay;
     scoreMap = new ConcurrentHashMap<>();
     rounds = new ArrayDeque<>();
   }
@@ -65,26 +75,68 @@ public class SimpleTournament implements Tournament {
   }
 
   @Override
-  public boolean start() {
+  public boolean start(BattleRules rules) {
     if (open && size() > 1) {
       open = false;
+      this.rules = rules;
       generateRound();
       return true;
     }
     return false;
   }
 
+  @Override
+  public void update(BattleManager manager) {
+    long time = System.currentTimeMillis();
+    if (time < nextBattleTime) {
+      return;
+    }
+    Round lastRound = rounds.peekLast();
+    if (lastRound == null) {
+      return;
+    }
+    nextBattle(lastRound);
+    if (currentBattle != null) {
+      switch (currentBattle.stage()) {
+        case CREATED -> manager.addBattle(currentBattle);
+        case ONGOING -> {
+          Participant winner = currentBattle.testVictory();
+          if (winner == null) {
+            return;
+          }
+          currentBattle.complete(manager);
+          nextBattleTime = time + delay;
+        }
+        case COMPLETED -> nextBattle(lastRound);
+      }
+    }
+  }
+
+  private void nextBattle(@Nullable Round current) {
+    if (current == null) {
+      finish();
+      return;
+    }
+    if (current.iterator().hasNext()) {
+      currentBattle = current.iterator().next();
+    } else {
+      generateRound();
+      nextBattle(rounds.peekLast());
+    }
+  }
+
   private void generateRound() {
     Round lastRound = rounds.peekLast();
-    Round nextRound = lastRound == null ? new Round(scoreMap.keySet(), PARTICIPANTS_PER_BATTLE) : lastRound.nextRound();
+    Round nextRound = lastRound == null ? new Round(scoreMap.keySet(), rules.teamAmount()) : lastRound.nextRound(rules.teamAmount());
     if (nextRound != null) {
-      rounds.add(nextRound);
+      rounds.addLast(nextRound);
     }
   }
 
   @Override
   public boolean finish() {
     recordStats();
+    Registries.TOURNAMENTS.invalidate(this);
     return true;
   }
 
@@ -135,6 +187,8 @@ public class SimpleTournament implements Tournament {
     private final Collection<Battle> battles;
     private final int size;
 
+    private final Iterator<Battle> iterator;
+
     private Round(Collection<Participant> input, int participantsPerBattle) {
       size = input.size();
       List<Participant> randomized = new ArrayList<>(input);
@@ -144,6 +198,7 @@ public class SimpleTournament implements Tournament {
         int end = Math.min(size, i + participantsPerBattle);
         battles.add(Battle.createBattle(randomized.subList(i, end)).orElseThrow());
       }
+      iterator = resetIterator();
     }
 
     public int size() {
@@ -154,19 +209,23 @@ public class SimpleTournament implements Tournament {
       return battles.stream();
     }
 
-    public @Nullable Round nextRound() {
+    public @Nullable Round nextRound(int participantsPerBattle) {
       if (stream().allMatch(b -> b.stage() == Stage.COMPLETED)) {
         Collection<Participant> input = stream().map(b -> b.topEntry().getKey()).toList();
         if (input.size() > 1) {
-          return new Round(input, PARTICIPANTS_PER_BATTLE);
+          return new Round(input, participantsPerBattle);
         }
       }
       return null;
     }
 
+    private Iterator<Battle> resetIterator() {
+      return Collections.unmodifiableCollection(battles).iterator();
+    }
+
     @Override
     public Iterator<Battle> iterator() {
-      return Collections.unmodifiableCollection(battles).iterator();
+      return iterator;
     }
   }
 }

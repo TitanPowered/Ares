@@ -17,26 +17,29 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.model.battle;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.participant.Participant;
 import me.moros.ares.model.victory.BattleVictory;
+import me.moros.ares.util.StepParser;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-// TODO link to specific arena
 public class BattleImpl implements Battle {
-  private final Map<Participant, BattleScore> parties;
+  private final Map<Participant, BattleData> parties;
   private BattleVictory condition = x -> null;
+  private BattleRules rules;
   private Stage stage = Stage.CREATED;
 
   BattleImpl(Collection<Participant> parties) {
@@ -44,12 +47,12 @@ public class BattleImpl implements Battle {
   }
 
   BattleImpl(Collection<Participant> parties, BattleScore startingScore) {
-    this.parties = parties.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> startingScore));
+    this.parties = parties.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> BattleData.create(startingScore)));
   }
 
   @Override
   public Map<Participant, BattleScore> scores() {
-    return Map.copyOf(parties);
+    return parties.entrySet().stream().collect(Collectors.toConcurrentMap(Entry::getKey, e -> e.getValue().score()));
   }
 
   @Override
@@ -58,35 +61,40 @@ public class BattleImpl implements Battle {
   }
 
   @Override
-  public boolean setScore(Participant participant, UnaryOperator<BattleScore> function) {
-    return parties.computeIfPresent(participant, (p, b) -> function.apply(b)) != null;
-  }
-
-  @Override
   public Entry<Participant, BattleScore> topEntry() {
-    return parties.entrySet().stream().max(Entry.comparingByValue()).orElseThrow();
+    return parties.entrySet().stream().max(Entry.comparingByValue())
+      .map(e -> Map.entry(e.getKey(), e.getValue().score())).orElseThrow();
   }
 
   @Override
-  public boolean start(BattleManager manager, BattleVictory condition) {
+  public boolean start(BattleManager manager, BattleRules rules) {
     if (stage != Stage.CREATED) {
       return false;
     }
     stage = Stage.STARTING;
-    this.condition = condition;
+    this.condition = rules.condition();
+    this.rules = rules;
     manager.addBattle(this);
-    // TODO add preparation steps
+    runSteps(manager);
     return true;
   }
 
   @Override
-  public Map<Participant, BattleScore> complete(BattleManager manager) {
-    // TODO cleanup after battle
-    stage = Stage.COMPLETED;
-    manager.clearBattle(this);
-    return scores();
+  public void runSteps(BattleManager manager) {
+    Collection<Participant> participants = List.copyOf(parties.keySet());
+    StepParser.parseAndExecute(this.rules.steps(), participants);
+    manager.gaia().ifPresent(g -> g.teleportParticipants(participants, rules.arena()));
   }
 
+  @Override
+  public Map<Participant, BattleData> complete(BattleManager manager) {
+    if (stage != Stage.COMPLETED) {
+      stage = Stage.COMPLETED;
+      manager.clearBattle(this);
+      StepParser.parseAndExecute(this.rules.cleanupSteps(), List.copyOf(parties.keySet()));
+    }
+    return Map.copyOf(parties);
+  }
 
   @Override
   public Stage stage() {
@@ -96,6 +104,11 @@ public class BattleImpl implements Battle {
   @Override
   public @Nullable Participant testVictory() {
     return condition.apply(this);
+  }
+
+  @Override
+  public void forEachEntry(BiConsumer<Participant, BattleData> consumer) {
+    parties.forEach(consumer);
   }
 
   @Override

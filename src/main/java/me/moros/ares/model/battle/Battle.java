@@ -17,18 +17,18 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.model.battle;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.UnaryOperator;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
-import me.moros.ares.model.victory.BattleVictory;
+import me.moros.ares.model.participant.Participant;
 import org.bukkit.entity.LivingEntity;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -37,17 +37,19 @@ public interface Battle extends Iterable<Participant> {
 
   Stream<Participant> participants();
 
-  boolean setScore(Participant participant, UnaryOperator<BattleScore> function);
-
   Entry<Participant, BattleScore> topEntry();
 
-  boolean start(BattleManager manager, BattleVictory condition);
+  boolean start(BattleManager manager, BattleRules rules);
 
-  Map<Participant, BattleScore> complete(BattleManager manager);
+  void runSteps(BattleManager manager);
+
+  Map<Participant, BattleData> complete(BattleManager manager);
 
   Stage stage();
 
   @Nullable Participant testVictory();
+
+  void forEachEntry(BiConsumer<Participant, BattleData> consumer);
 
   static Optional<Battle> createBattle(Collection<Participant> parties) {
     if (!parties.isEmpty() && parties.stream().allMatch(Participant::isValid)) {

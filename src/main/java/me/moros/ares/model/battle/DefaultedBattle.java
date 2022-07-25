@@ -17,34 +17,34 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.model.battle;
 
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.UnaryOperator;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
-import me.moros.ares.model.victory.BattleVictory;
+import me.moros.ares.model.participant.Participant;
 
 public class DefaultedBattle implements Battle {
   private final Participant participant;
-  private final BattleScore score;
+  private final BattleData data;
 
   DefaultedBattle(Participant participant) {
-    this(participant, BattleScore.ZERO);
+    this(participant, new BattleScore(1));
   }
 
   DefaultedBattle(Participant participant, BattleScore score) {
     this.participant = participant;
-    this.score = score;
+    this.data = BattleData.create(score);
   }
 
   @Override
   public Map<Participant, BattleScore> scores() {
-    return Map.of(participant, score);
+    return Map.of(participant, data.score());
   }
 
   @Override
@@ -53,23 +53,22 @@ public class DefaultedBattle implements Battle {
   }
 
   @Override
-  public boolean setScore(Participant participant, UnaryOperator<BattleScore> function) {
-    return false;
-  }
-
-  @Override
   public Entry<Participant, BattleScore> topEntry() {
-    return Map.entry(participant, score);
+    return Map.entry(participant, data.score());
   }
 
   @Override
-  public boolean start(BattleManager manager, BattleVictory condition) {
+  public boolean start(BattleManager manager, BattleRules rules) {
     return false;
   }
 
   @Override
-  public Map<Participant, BattleScore> complete(BattleManager manager) {
-    return scores();
+  public void runSteps(BattleManager manager) {
+  }
+
+  @Override
+  public Map<Participant, BattleData> complete(BattleManager manager) {
+    return Map.of(participant, data);
   }
 
   @Override
@@ -83,7 +82,12 @@ public class DefaultedBattle implements Battle {
   }
 
   @Override
+  public void forEachEntry(BiConsumer<Participant, BattleData> consumer) {
+    consumer.accept(participant, data);
+  }
+
+  @Override
   public Iterator<Participant> iterator() {
-    return Collections.emptyIterator();
+    return List.of(participant).iterator();
   }
 }

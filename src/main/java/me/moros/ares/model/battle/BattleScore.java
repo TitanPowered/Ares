@@ -17,7 +17,7 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.model.battle;
 
 import java.util.Comparator;
 

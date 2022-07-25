@@ -17,35 +17,15 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model;
+package me.moros.ares.config;
 
-import java.util.stream.Stream;
+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
-import net.kyori.adventure.text.Component;
+@ConfigSerializable
+public class Properties {
+  private final long tournamentBattleInterval = 30_000;
 
-// TODO create implementations
-public interface Tournament {
-  String name();
-
-  Component displayName();
-
-  boolean isOpen();
-
-  boolean start();
-
-  boolean finish();
-
-  boolean addParticipant(Participant participant);
-
-  boolean removeParticipant(Participant participant);
-
-  boolean hasParticipant(Participant participant);
-
-  Stream<Participant> participants();
-
-  boolean addBattle(Battle battle);
-
-  Stream<Battle> currentBattles();
-
-  int size();
+  public long battleInterval() {
+    return tournamentBattleInterval;
+  }
 }

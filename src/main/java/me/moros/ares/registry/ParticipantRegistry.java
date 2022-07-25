@@ -26,7 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-import me.moros.ares.model.Participant;
+import me.moros.ares.model.participant.Participant;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class ParticipantRegistry implements Registry<Participant> {

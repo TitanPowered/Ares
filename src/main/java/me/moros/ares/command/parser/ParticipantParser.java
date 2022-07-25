@@ -27,7 +27,7 @@ import cloud.commandframework.arguments.parser.ArgumentParser;
 import cloud.commandframework.bukkit.parsers.PlayerArgument.PlayerParseException;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
-import me.moros.ares.model.Participant;
+import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;

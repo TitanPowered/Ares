@@ -19,15 +19,15 @@
 
 package me.moros.ares.model.victory;
 
-import me.moros.ares.model.Battle;
-import me.moros.ares.model.BattleScore;
-import me.moros.ares.model.Participant;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.BattleScore;
+import me.moros.ares.model.participant.Participant;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ScoreVictory implements BattleVictory {
   private final BattleScore score;
 
-  public ScoreVictory(int score) {
+  private ScoreVictory(int score) {
     this.score = new BattleScore(score);
   }
 
@@ -37,5 +37,12 @@ public class ScoreVictory implements BattleVictory {
       return top.getKey();
     }
     return null;
+  }
+
+  public static BattleVictory of(int score) {
+    if (score <= 0) {
+      return b -> null;
+    }
+    return new ScoreVictory(score);
   }
 }

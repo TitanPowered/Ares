@@ -20,20 +20,28 @@
 package me.moros.ares.game;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import me.moros.ares.model.Battle;
-import me.moros.ares.model.Participant;
+import me.moros.ares.GaiaHook;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.Battle.Stage;
+import me.moros.ares.model.participant.Participant;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.plugin.Plugin;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BattleManager {
   private final Map<UUID, Battle> activeBattles;
+  private final GaiaHook gaiaHook;
 
   public BattleManager() {
     activeBattles = new ConcurrentHashMap<>();
+    Plugin plugin = Bukkit.getPluginManager().getPlugin("Gaia");
+    gaiaHook = plugin == null ? null : new GaiaHook(plugin);
   }
 
   public boolean inBattle(LivingEntity entity) {
@@ -49,19 +57,29 @@ public class BattleManager {
   }
 
   public @Nullable Battle battle(UUID uuid) {
-    return activeBattles.get(uuid);
+    Battle battle = activeBattles.get(uuid);
+    if (battle != null && battle.stage() == Stage.ONGOING) {
+      Participant winner = battle.testVictory();
+      if (winner != null) {
+        battle.complete(this);
+        return null;
+      }
+    }
+    return battle;
   }
 
   public void addBattle(Battle battle) {
-    battle.participants().flatMap(Participant::members).map(Entity::getUniqueId)
-      .forEach(uuid -> activeBattles.put(uuid, battle));
+    if (battle.stage() != Stage.COMPLETED) {
+      battle.participants().flatMap(Participant::members).map(Entity::getUniqueId)
+        .forEach(uuid -> activeBattles.put(uuid, battle));
+    }
   }
 
   public void clearBattle(Battle battle) {
     battle.participants().flatMap(Participant::members).map(Entity::getUniqueId).forEach(activeBattles::remove);
   }
 
-  public boolean removeFromBattle(UUID uuid) {
-    return activeBattles.remove(uuid) != null;
+  public Optional<GaiaHook> gaia() {
+    return Optional.ofNullable(gaiaHook);
   }
 }

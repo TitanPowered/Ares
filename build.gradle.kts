@@ -18,13 +18,15 @@ java {
 
 repositories {
     mavenCentral()
-    maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://maven.enginehub.org/repo/")
 }
 
 dependencies {
     compileOnly("me.moros", "bending-api", "2.0.0-SNAPSHOT")
+    compileOnly("me.moros", "gaia-core", "1.8.0-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit", "worldedit-core", "7.2.6")
     implementation("com.github.ben-manes.caffeine", "caffeine", "3.0.6") {
         exclude(module = "checker-qual")
     }
@@ -33,7 +35,7 @@ dependencies {
     implementation("cloud.commandframework","cloud-minecraft-extras", "1.7.0") {
         exclude(group = "net.kyori")
     }
-    implementation("org.spongepowered", "configurate-hocon", "4.1.2")
+    implementation("org.spongepowered", "configurate-gson", "4.1.2")
     compileOnly("org.checkerframework", "checker-qual", "3.21.3")
     compileOnly("io.papermc.paper", "paper-api", "1.18.2-R0.1-SNAPSHOT")
 }

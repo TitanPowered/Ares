@@ -22,6 +22,7 @@ package me.moros.ares.registry;
 public final class Registries {
   public static final ParticipantRegistry PARTICIPANTS = new ParticipantRegistry();
   public static final TournamentRegistry TOURNAMENTS = new TournamentRegistry();
+  public static final BattleRulesRegistry RULES = new BattleRulesRegistry();
 
   private Registries() {
   }

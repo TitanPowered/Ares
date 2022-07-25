@@ -28,11 +28,11 @@ import cloud.commandframework.meta.CommandMeta;
 import me.moros.ares.Ares;
 import me.moros.ares.game.Game;
 import me.moros.ares.locale.Message;
-import me.moros.ares.model.Battle;
-import me.moros.ares.model.Participant;
-import me.moros.ares.model.SimpleTournament;
-import me.moros.ares.model.Tournament;
-import me.moros.ares.model.victory.ScoreVictory;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.BattleRules;
+import me.moros.ares.model.participant.Participant;
+import me.moros.ares.model.tournament.SimpleTournament;
+import me.moros.ares.model.tournament.Tournament;
 import me.moros.ares.registry.Registries;
 import me.moros.ares.util.TextUtil;
 import net.kyori.adventure.text.Component;
@@ -59,6 +59,8 @@ public class AresCommand {
       .meta(CommandMeta.DESCRIPTION, "Base command for Ares");
     var participantArg = manager.argumentBuilder(Participant.class, "participant");
     var tournamentArg = manager.argumentBuilder(Tournament.class, "tournament")
+      .asOptionalWithDefault("default");
+    var rulesArg = manager.argumentBuilder(BattleRules.class, "rules")
       .asOptionalWithDefault("default");
 
     //noinspection ConstantConditions
@@ -93,13 +95,15 @@ public class AresCommand {
         .meta(CommandMeta.DESCRIPTION, "Start an open tournament")
         .permission(CommandPermissions.CREATE)
         .argument(tournamentArg.build())
-        .handler(c -> onStart(c.getSender(), c.get("tournament")))
+        .argument(rulesArg.build())
+        .handler(c -> onStart(c.getSender(), c.get("tournament"), c.get("rules")))
       ).command(builder.literal("duel", "d")
         .meta(CommandMeta.DESCRIPTION, "Duel another participant")
         .permission(CommandPermissions.DUEL)
         .senderType(Player.class)
         .argument(participantArg.build())
-        .handler(c -> onDuel((Player) c.getSender(), c.get("participant")))
+        .argument(rulesArg.build())
+        .handler(c -> onDuel((Player) c.getSender(), c.get("participant"), c.get("rules")))
       ).command(builder.literal("help", "h")
         .meta(CommandMeta.DESCRIPTION, "View info about a command")
         .permission(CommandPermissions.HELP)
@@ -155,12 +159,12 @@ public class AresCommand {
       Message.TOURNAMENT_CREATE_INVALID_NAME.send(user, name);
       return;
     }
-    Tournament tournament = new SimpleTournament(validatedName);
+    Tournament tournament = new SimpleTournament(validatedName, plugin.configManager().properties().battleInterval());
     Registries.TOURNAMENTS.register(tournament);
   }
 
-  private void onStart(CommandSender user, Tournament tournament) {
-    if (tournament.start()) {
+  private void onStart(CommandSender user, Tournament tournament, BattleRules rules) {
+    if (tournament.start(rules)) {
       Message.TOURNAMENT_START_SUCCESS.send(user, tournament.displayName());
       int size = tournament.size();
       if (size % 2 != 0) {
@@ -171,8 +175,8 @@ public class AresCommand {
     }
   }
 
-  // TODO require duel accept, add time/rules/arena
-  private void onDuel(Player player, Participant other) {
+  // TODO require duel accept
+  private void onDuel(Player player, Participant other, BattleRules rules) {
     if (other.contains(player)) {
       Message.SELF_BATTLE.send(player);
       return;
@@ -184,7 +188,10 @@ public class AresCommand {
       Message.OTHER_IN_BATTLE.send(player, other.name());
       return;
     }
-    Battle.createBattle(List.of(Participant.of(player), other))
-      .ifPresent(b -> b.start(game.battleManager(), new ScoreVictory(3)));
+    Battle battle = Battle.createBattle(List.of(Participant.of(player), other)).orElse(null);
+    if (battle != null && battle.start(game.battleManager(), rules) && rules.duration() > 0) {
+      long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
+      plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> battle.complete(game.battleManager()), delay);
+    }
   }
 }

@@ -22,17 +22,20 @@ package me.moros.ares.listener;
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import io.papermc.paper.event.entity.EntityMoveEvent;
 import me.moros.ares.game.Game;
-import me.moros.ares.model.Battle;
-import me.moros.ares.model.Battle.Stage;
-import me.moros.ares.model.BattleScore;
-import me.moros.ares.model.Participant;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.Battle.Stage;
+import me.moros.ares.model.battle.BattleScore;
+import me.moros.ares.model.battle.BattleStat.Keys;
+import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -78,19 +81,66 @@ public class ParticipantListener implements Listener {
   }
 
   private boolean cancelMovement(LivingEntity entity) {
-    Battle battle = game.battleManager().battle(entity);
-    return battle != null && battle.stage() == Stage.STARTING;
+    return checkStage(game.battleManager().battle(entity), Stage.STARTING);
   }
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  public void onPlayerDeath(PlayerDeathEvent event) {
-    Player player = event.getPlayer();
-    Battle battle = game.battleManager().battle(player);
-    if (updateBattle(battle)) {
-      for (Participant participant : battle) {
-        if (!participant.contains(player)) {
-          battle.setScore(participant, BattleScore::increment);
+  public void onEntityDeath(EntityDeathEvent event) {
+    LivingEntity entity = event.getEntity();
+    Battle battle = game.battleManager().battle(entity);
+    LivingEntity killer = killer(entity);
+    if (checkStage(battle, Stage.ONGOING)) {
+      battle.forEachEntry((p, d) -> {
+        if (!p.contains(entity)) {
+          d.score(BattleScore::increment);
+        } else {
+          d.value(Keys.DEATHS, v -> v + 1);
         }
+        if (killer != null && p.contains(killer)) {
+          d.value(Keys.KILLS, v -> v + 1);
+        }
+      });
+    }
+  }
+
+  private @Nullable LivingEntity killer(LivingEntity entity) {
+    Player killer = entity.getKiller();
+    if (killer != null) {
+      return killer;
+    }
+    if (entity.getLastDamageCause() instanceof EntityDamageByEntityEvent cause) {
+      if (cause.getDamager() instanceof LivingEntity livingEntity) {
+        return livingEntity;
+      }
+    }
+    return null;
+  }
+
+  @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+  public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+    if (event.getDamager() instanceof LivingEntity source && event.getEntity() instanceof LivingEntity target) {
+      Battle battle = game.battleManager().battle(source);
+      Battle battle2 = game.battleManager().battle(target);
+      if (battle != null && battle.equals(battle2) && checkStage(battle, Stage.ONGOING)) {
+        battle.forEachEntry((p, d) -> {
+          if (p.contains(source)) {
+            d.value(Keys.DAMAGE, v -> v + event.getFinalDamage());
+          }
+        });
+      }
+    }
+  }
+
+  @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+  public void onEntityRegainHealth(EntityRegainHealthEvent event) {
+    if (event.getEntity() instanceof LivingEntity entity) {
+      Battle battle = game.battleManager().battle(entity);
+      if (checkStage(battle, Stage.ONGOING)) {
+        battle.forEachEntry((p, d) -> {
+          if (p.contains(entity)) {
+            d.value(Keys.HEALTH_REGENERATED, v -> v + event.getAmount());
+          }
+        });
       }
     }
   }
@@ -99,19 +149,12 @@ public class ParticipantListener implements Listener {
   public void onPlayerRespawn(PlayerRespawnEvent event) {
     Player player = event.getPlayer();
     Battle battle = game.battleManager().battle(player);
-    if (updateBattle(battle) && battle.stage() == Stage.ONGOING) {
-      // TODO respawn player back in the arena
+    if (checkStage(battle, Stage.ONGOING)) {
+      battle.runSteps(game.battleManager());
     }
   }
 
-  private boolean updateBattle(@Nullable Battle battle) {
-    if (battle != null && battle.stage() == Stage.ONGOING) {
-      Participant winner = battle.testVictory();
-      if (winner != null) {
-        battle.complete(game.battleManager());
-      }
-      return true;
-    }
-    return false;
+  private boolean checkStage(@Nullable Battle battle, Stage stage) {
+    return battle != null && battle.stage() == stage;
   }
 }

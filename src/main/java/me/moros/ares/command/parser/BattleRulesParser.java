@@ -26,32 +26,27 @@ import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
-import me.moros.ares.model.tournament.Tournament;
+import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.registry.Registries;
 import org.bukkit.command.CommandSender;
 
-public final class TournamentParser implements ArgumentParser<CommandSender, Tournament> {
+public final class BattleRulesParser implements ArgumentParser<CommandSender, BattleRules> {
   @Override
-  public ArgumentParseResult<Tournament> parse(CommandContext<CommandSender> commandContext, Queue<String> inputQueue) {
+  public ArgumentParseResult<BattleRules> parse(CommandContext<CommandSender> commandContext, Queue<String> inputQueue) {
     String input = inputQueue.peek();
     if (input == null) {
-      return ArgumentParseResult.failure(new NoInputProvidedException(TournamentParser.class, commandContext));
+      return ArgumentParseResult.failure(new NoInputProvidedException(BattleRulesParser.class, commandContext));
     }
     inputQueue.remove();
-    Tournament tournament;
-    if (input.equalsIgnoreCase("default")) {
-      tournament = Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).findFirst().orElse(null);
-    } else {
-      tournament = Registries.TOURNAMENTS.get(input);
+    BattleRules rules = Registries.RULES.get(input);
+    if (rules != null) {
+      return ArgumentParseResult.success(rules);
     }
-    if (tournament != null && tournament.isOpen()) {
-      return ArgumentParseResult.success(tournament);
-    }
-    return ArgumentParseResult.failure(new Throwable("Could not any open tournaments matching " + input));
+    return ArgumentParseResult.failure(new Throwable("Could not any open battle rules matching " + input));
   }
 
   @Override
   public List<String> suggestions(final CommandContext<CommandSender> commandContext, final String input) {
-    return Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).map(Tournament::name).toList();
+    return Registries.RULES.stream().map(BattleRules::name).toList();
   }
 }
