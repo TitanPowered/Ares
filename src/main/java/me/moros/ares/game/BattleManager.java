@@ -35,13 +35,15 @@ import org.bukkit.plugin.Plugin;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BattleManager {
-  private final Map<UUID, Battle> activeBattles;
+  private final Plugin ares;
   private final GaiaHook gaiaHook;
+  private final Map<UUID, Battle> activeBattles;
 
-  public BattleManager() {
-    activeBattles = new ConcurrentHashMap<>();
+  public BattleManager(Plugin ares) {
+    this.ares = ares;
     Plugin plugin = Bukkit.getPluginManager().getPlugin("Gaia");
     gaiaHook = plugin == null ? null : new GaiaHook(plugin);
+    activeBattles = new ConcurrentHashMap<>();
   }
 
   public boolean inBattle(LivingEntity entity) {
@@ -81,5 +83,9 @@ public class BattleManager {
 
   public Optional<GaiaHook> gaia() {
     return Optional.ofNullable(gaiaHook);
+  }
+
+  public void async(Runnable runnable, long delay) {
+    ares.getServer().getScheduler().runTaskLaterAsynchronously(ares, runnable, delay);
   }
 }

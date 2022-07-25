@@ -24,7 +24,6 @@ import java.util.Queue;
 
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.bukkit.parsers.PlayerArgument.PlayerParseException;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
 import me.moros.ares.model.participant.Participant;
@@ -41,14 +40,18 @@ public final class ParticipantParser implements ArgumentParser<CommandSender, Pa
       return ArgumentParseResult.failure(new NoInputProvidedException(ParticipantParser.class, commandContext));
     }
     inputQueue.remove();
+    Participant participant;
     Player player = Bukkit.getPlayer(input);
     if (player != null) {
-      Participant participant = Registries.PARTICIPANTS.get(player.getUniqueId());
-      if (participant != null) {
-        return ArgumentParseResult.success(participant);
-      }
+      participant = Registries.PARTICIPANTS.get(player.getUniqueId());
+    } else {
+      participant = Registries.PARTICIPANTS.stream().filter(p -> input.equalsIgnoreCase(p.name()))
+        .findFirst().orElse(null);
     }
-    return ArgumentParseResult.failure(new PlayerParseException(input, commandContext));
+    if (participant != null) {
+      return ArgumentParseResult.success(participant);
+    }
+    return ArgumentParseResult.failure(new Throwable("Could not any entity matching " + input));
   }
 
   @Override

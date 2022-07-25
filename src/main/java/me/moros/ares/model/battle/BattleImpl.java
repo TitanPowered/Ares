@@ -71,12 +71,28 @@ public class BattleImpl implements Battle {
     if (stage != Stage.CREATED) {
       return false;
     }
-    stage = Stage.STARTING;
     this.condition = rules.condition();
     this.rules = rules;
+    stage = Stage.STARTING;
     manager.addBattle(this);
     runSteps(manager);
+    if (rules.duration() > 0) {
+      long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
+      manager.async(() -> complete(manager), delay);
+    }
+    if (rules.preparationTime() > 0) {
+      long delay = rules.preparationTime() / 50L;
+      manager.async(this::mainStage, delay);
+    } else {
+      stage = Stage.ONGOING;
+    }
     return true;
+  }
+
+  private void mainStage() {
+    if (stage == Stage.CREATED || stage == Stage.STARTING) {
+      stage = Stage.ONGOING;
+    }
   }
 
   @Override

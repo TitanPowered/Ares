@@ -26,7 +26,7 @@ public class Game {
   private final BattleManager battleManager;
 
   public Game(Ares plugin) {
-    battleManager = new BattleManager();
+    battleManager = new BattleManager(plugin);
     plugin.getServer().getScheduler().runTaskTimer(plugin, this::update, 1, 20);
   }
 

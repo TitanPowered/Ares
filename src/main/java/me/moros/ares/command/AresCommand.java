@@ -231,11 +231,7 @@ public class AresCommand {
       Message.OTHER_IN_BATTLE.send(player, other.name());
       return;
     }
-    Battle battle = Battle.createBattle(List.of(Participant.of(player), other)).orElse(null);
-    if (battle != null && battle.start(game.battleManager(), rules) && rules.duration() > 0) {
-      long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
-      plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> battle.complete(game.battleManager()), delay);
-    }
+    Battle.createBattle(List.of(Participant.of(player), other)).ifPresent(b -> b.start(game.battleManager(), rules));
   }
 
   private void onDetails(CommandSender user, Tournament tournament) {
