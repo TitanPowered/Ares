@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -73,33 +74,38 @@ public class BattleImpl implements Battle {
     }
     this.condition = rules.condition();
     this.rules = rules;
-    stage = Stage.STARTING;
     manager.addBattle(this);
     runSteps(manager);
     if (rules.duration() > 0) {
       long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
       manager.async(() -> complete(manager), delay);
     }
+    return true;
+  }
+
+  @Override
+  public CompletableFuture<Void> runSteps(BattleManager manager) {
+    Collection<Participant> participants = List.copyOf(parties.keySet());
+    StepParser.parseAndExecute(this.rules.steps(), participants);
+    return manager.gaia().map(g -> g.teleportParticipants(participants, rules.arena()))
+      .orElseGet(() -> CompletableFuture.completedFuture(null))
+      .thenRun(() -> runPreparation(manager));
+  }
+
+  private void runPreparation(BattleManager manager) {
     if (rules.preparationTime() > 0) {
+      stage = Stage.STARTING;
       long delay = rules.preparationTime() / 50L;
       manager.async(this::mainStage, delay);
     } else {
       stage = Stage.ONGOING;
     }
-    return true;
   }
 
   private void mainStage() {
     if (stage == Stage.CREATED || stage == Stage.STARTING) {
       stage = Stage.ONGOING;
     }
-  }
-
-  @Override
-  public void runSteps(BattleManager manager) {
-    Collection<Participant> participants = List.copyOf(parties.keySet());
-    StepParser.parseAndExecute(this.rules.steps(), participants);
-    manager.gaia().ifPresent(g -> g.teleportParticipants(participants, rules.arena()));
   }
 
   @Override

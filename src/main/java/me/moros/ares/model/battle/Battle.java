@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -43,7 +44,7 @@ public interface Battle extends Iterable<Participant> {
 
   boolean start(BattleManager manager, BattleRules rules);
 
-  void runSteps(BattleManager manager);
+  CompletableFuture<Void> runSteps(BattleManager manager);
 
   Map<Participant, BattleData> complete(BattleManager manager);
 

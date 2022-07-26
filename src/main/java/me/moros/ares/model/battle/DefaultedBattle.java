@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -63,7 +64,8 @@ public class DefaultedBattle implements Battle {
   }
 
   @Override
-  public void runSteps(BattleManager manager) {
+  public CompletableFuture<Void> runSteps(BattleManager manager) {
+    return CompletableFuture.completedFuture(null);
   }
 
   @Override
