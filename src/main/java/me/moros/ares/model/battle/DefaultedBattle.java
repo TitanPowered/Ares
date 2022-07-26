@@ -25,10 +25,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
 import me.moros.ares.model.participant.Participant;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class DefaultedBattle implements Battle {
   private final Participant participant;
@@ -71,6 +73,10 @@ public class DefaultedBattle implements Battle {
   @Override
   public Map<Participant, BattleData> complete(BattleManager manager) {
     return Map.of(participant, data);
+  }
+
+  @Override
+  public void onComplete(@Nullable Consumer<Battle> consumer) {
   }
 
   @Override

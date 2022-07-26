@@ -61,8 +61,7 @@ public class BattleManager {
   public @Nullable Battle battle(UUID uuid) {
     Battle battle = activeBattles.get(uuid);
     if (battle != null && battle.stage() == Stage.ONGOING) {
-      Participant winner = battle.testVictory();
-      if (winner != null) {
+      if (battle.testVictory() != null) {
         battle.complete(this);
         return null;
       }

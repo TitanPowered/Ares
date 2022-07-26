@@ -27,20 +27,32 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.locale.Message;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.Battle.Stage;
 import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.text;
 
 public class SimpleTournament implements Tournament {
   private final String name;
+  private final BattleManager manager;
   private final Map<Participant, BattleScore> scoreMap;
   private final Deque<Round> rounds;
   private final long delay;
@@ -50,9 +62,10 @@ public class SimpleTournament implements Tournament {
   private long nextBattleTime;
   private boolean open = true;
 
-  public SimpleTournament(String name, long delay) {
+  public SimpleTournament(String name, long delay, BattleManager manager) {
     this.name = name;
     this.delay = delay;
+    this.manager = manager;
     scoreMap = new ConcurrentHashMap<>();
     rounds = new ArrayDeque<>();
   }
@@ -73,63 +86,83 @@ public class SimpleTournament implements Tournament {
       open = false;
       this.rules = rules;
       generateRound();
+      nextBattle();
       return true;
     }
     return false;
   }
 
   @Override
-  public void update(BattleManager manager) {
-    long time = System.currentTimeMillis();
-    if (time < nextBattleTime) {
+  public void update() {
+    if (System.currentTimeMillis() < nextBattleTime) {
       return;
     }
-    Round lastRound = rounds.peekLast();
-    if (lastRound == null) {
-      return;
-    }
-    nextBattle(lastRound);
     if (currentBattle != null) {
       switch (currentBattle.stage()) {
-        case CREATED -> currentBattle.start(manager, rules);
-        case ONGOING -> {
-          Participant winner = currentBattle.testVictory();
-          if (winner == null) {
-            return;
-          }
-          scoreMap.computeIfPresent(winner, (p, s) -> s.increment());
-          skip(manager);
-        }
-        case COMPLETED -> nextBattle(lastRound);
+        case CREATED -> startBattle();
+        case COMPLETED -> nextBattle();
       }
     }
   }
 
-  private void nextBattle(@Nullable Round round) {
-    if (round == null) {
-      finish();
-      return;
-    }
-    if (round.iterator().hasNext()) {
-      currentBattle = round.iterator().next();
+  private void startBattle() {
+    currentBattle.start(manager, rules);
+    if (currentBattle.stage() == Stage.COMPLETED) {
+      addWinnerScore(currentBattle);
     } else {
-      nextBattle(generateRound());
+      currentBattle.onComplete(this::addWinnerScore);
     }
   }
 
-  private @Nullable Round generateRound() {
+  private void addWinnerScore(Battle battle) {
+    Participant winner = battle.testVictory();
+    if (winner != null) {
+      scoreMap.computeIfPresent(winner, (p, s) -> s.increment());
+    }
+  }
+
+  private void nextBattle() {
+    Round round = rounds.peekLast();
+    if (round != null && round.iterator().hasNext()) {
+      currentBattle = round.iterator().next();
+    } else {
+      generateRound();
+    }
+    nextBattleTime = System.currentTimeMillis() + delay;
+  }
+
+  private void generateRound() {
     Round lastRound = rounds.peekLast();
-    Round nextRound = lastRound == null ? new Round(scoreMap.keySet(), rules.teamAmount()) : lastRound.nextRound(rules.teamAmount());
+    List<Participant> randomized = new ArrayList<>(scoreMap.keySet());
+    Collections.shuffle(randomized);
+    Round nextRound = lastRound == null ? new Round(randomized, rules.teamAmount()) : lastRound.nextRound(rules.teamAmount());
     if (nextRound != null) {
       rounds.addLast(nextRound);
+    } else {
+      finish();
     }
-    return nextRound;
   }
 
   @Override
-  public boolean finish() {
+  public boolean finish(boolean sendFeedback) {
+    if (currentBattle != null) {
+      currentBattle.complete(manager);
+    }
     recordStats();
     Registries.TOURNAMENTS.invalidate(this);
+    if (sendFeedback) {
+      var results = scoreMap.entrySet().stream()
+        .sorted(Entry.comparingByValue(BattleScore.COMPARATOR.reversed())).toList();
+      int position = 0;
+      for (var entry : results) {
+        Participant participant = entry.getKey();
+        int place = ++position;
+        String score = entry.getValue().toString();
+        Message.TOURNAMENT_RESULT.send(participant, displayName(), place, score);
+        Component text = Component.text(entry.getKey().name() + " ranked " + place + " with a score of " + score);
+        Bukkit.getConsoleSender().sendMessage(text);
+      }
+    }
     return true;
   }
 
@@ -167,8 +200,27 @@ public class SimpleTournament implements Tournament {
   }
 
   @Override
-  public Stream<Battle> currentBattles() {
-    return rounds.stream().flatMap(Round::stream);
+  public Collection<Component> details() {
+    Collection<Component> components = new ArrayList<>();
+    components.add(displayName());
+    int roundCounter = 0;
+    for (Round round : rounds) {
+      ++roundCounter;
+      components.add(Component.text("Round " + roundCounter, NamedTextColor.GOLD));
+      for (Battle battle : round.battles) {
+        BattleScore top = battle.topEntry().getValue();
+        boolean bold = top.compareTo(BattleScore.ZERO) > 0;
+        Collection<Component> participants = new ArrayList<>();
+        battle.forEachEntry((p, d) -> {
+          Style style = Style.style().color(battle.stage().color())
+            .decoration(TextDecoration.BOLD, bold && d.score().compareTo(top) >= 0).build();
+          participants.add(text(p.name(), style));
+        });
+        components.add(join(JoinConfiguration.separator(text(" vs ")), participants));
+      }
+      components.add(Component.newline());
+    }
+    return components;
   }
 
   @Override
@@ -176,34 +228,19 @@ public class SimpleTournament implements Tournament {
     return scoreMap.size();
   }
 
-  @Override
-  public void skip(BattleManager manager) {
-    if (currentBattle != null) {
-      currentBattle.complete(manager);
-      nextBattleTime = System.currentTimeMillis() + delay;
-    }
-  }
-
   private static final class Round implements Iterable<Battle> {
     private final Collection<Battle> battles;
-    private final int size;
-
     private final Iterator<Battle> iterator;
 
     private Round(Collection<Participant> input, int participantsPerBattle) {
-      size = input.size();
+      int size = input.size();
       List<Participant> randomized = new ArrayList<>(input);
-      Collections.shuffle(randomized);
       battles = new ArrayList<>();
       for (int i = 0; i < size; i += participantsPerBattle) {
         int end = Math.min(size, i + participantsPerBattle);
-        battles.add(Battle.createBattle(randomized.subList(i, end)).orElseThrow());
+        battles.add(Battle.createBattle(randomized.subList(i, end)));
       }
       iterator = battles.iterator();
-    }
-
-    public int size() {
-      return size;
     }
 
     public Stream<Battle> stream() {

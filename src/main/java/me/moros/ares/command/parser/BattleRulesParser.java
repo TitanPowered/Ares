@@ -42,7 +42,7 @@ public final class BattleRulesParser implements ArgumentParser<CommandSender, Ba
     if (rules != null) {
       return ArgumentParseResult.success(rules);
     }
-    return ArgumentParseResult.failure(new Throwable("Could not any open battle rules matching " + input));
+    return ArgumentParseResult.failure(new Throwable("Could not find any battle rules matching " + input));
   }
 
   @Override

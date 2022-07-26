@@ -41,7 +41,6 @@ public interface Message {
 
   Args0 RELOAD = () -> translatable("ares.command.reload", GREEN);
 
-  Args0 HELP_HEADER = () -> brand(translatable("ares.command.help.header", GOLD));
   Args0 TOURNAMENT_LIST_HEADER = () -> translatable("ares.command.tournament.list.header", GOLD);
   Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list.empty", YELLOW);
 
@@ -66,8 +65,11 @@ public interface Message {
     .args(tournament);
   Args1<Component> TOURNAMENT_CLOSED = tournament -> translatable("ares.command.tournament.closed", YELLOW)
     .args(tournament);
-  Args1<Component> TOURNAMENT_SKIP = tournament -> translatable("ares.command.tournament.skip", YELLOW)
+  Args1<Component> TOURNAMENT_CANCEL = tournament -> translatable("ares.command.tournament.cancel", YELLOW)
     .args(tournament);
+
+  Args3<Component, Integer, String> TOURNAMENT_RESULT = (tournament, position, score) -> translatable("ares.command.tournament.result", AQUA)
+    .args(tournament, text(position, DARK_AQUA), text(score, GOLD));
 
   Args0 SELF_BATTLE = () -> translatable("ares.command.duel.battle.self", YELLOW);
   Args0 SELF_IN_BATTLE = () -> translatable("ares.command.duel.in-battle.self", YELLOW);
@@ -105,6 +107,14 @@ public interface Message {
 
     default void send(Audience user, A0 arg0, A1 arg1) {
       user.sendMessage(build(arg0, arg1));
+    }
+  }
+
+  interface Args3<A0, A1, A2> {
+    Component build(A0 arg0, A1 arg1, A2 arg2);
+
+    default void send(Audience user, A0 arg0, A1 arg1, A2 arg2) {
+      user.sendMessage(build(arg0, arg1, arg2));
     }
   }
 }

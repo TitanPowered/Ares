@@ -20,7 +20,10 @@
 package me.moros.ares.util;
 
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import me.moros.ares.model.participant.Participant;
@@ -32,13 +35,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
 
 public final class StepParser {
-  private static final Pattern ENTITY = Pattern.compile("\\{entity}");
+  private static final Pattern PLACEHOLDERS = Pattern.compile("<(name|uuid)>");
 
   private StepParser() {
   }
 
   public static void parseAndExecute(Collection<String> steps, Collection<Participant> participants) {
-    Collection<LivingEntity> entities = participants.stream().flatMap(Participant::members).toList();
+    List<LivingEntity> entities = participants.stream().flatMap(Participant::members).toList();
     for (String step : steps) {
       String[] arr = step.split(":", 2);
       if (arr.length != 2) {
@@ -49,17 +52,40 @@ public final class StepParser {
         return;
       }
       switch (arr[0].toLowerCase(Locale.ROOT)) {
-        case "msg" -> participants.forEach(p -> msg(p, value));
-        case "broadcast" -> broadcast(value);
-        case "cmd" -> entities.forEach(e -> command(e, value));
-        case "console" -> entities.forEach(e -> command(ENTITY.matcher(value).replaceAll(e.getName())));
+        case "msg" -> msg(Audience.audience(participants), replace(participants.iterator(), value));
+        case "broadcast" -> msg(Bukkit.getServer(), replace(participants.iterator(), value));
+        case "cmd" -> entities.forEach(e -> dynamicCommand(e, value, false));
+        case "console" -> entities.forEach(e -> dynamicCommand(e, value, true));
         case "global" -> command(value);
       }
     }
   }
 
-  private static void broadcast(String msg) {
-    msg(Bukkit.getServer(), msg);
+  public static String replace(Iterator<Participant> iterator, String value) {
+    Matcher matcher = PLACEHOLDERS.matcher(value);
+    int length = value.length();
+    int lastIndex = 0;
+    StringBuilder output = new StringBuilder();
+    while (matcher.find()) {
+      if (!iterator.hasNext()) {
+        break;
+      }
+      String token = matcher.group();
+      output.append(value, lastIndex, matcher.start()).append(replace(iterator.next(), token));
+      lastIndex = matcher.end();
+    }
+    if (lastIndex < length) {
+      output.append(value, lastIndex, length);
+    }
+    return output.toString();
+  }
+
+  private static String replace(Participant p, String token) {
+    return token.equalsIgnoreCase("<uuid>") ? p.uuid().toString() : p.name();
+  }
+
+  private static String replace(LivingEntity e, String token) {
+    return token.equalsIgnoreCase("<uuid>") ? e.getUniqueId().toString() : e.getName();
   }
 
   private static void msg(Audience audience, String msg) {
@@ -67,11 +93,12 @@ public final class StepParser {
     audience.sendMessage(component);
   }
 
-  private static void command(String cmd) {
-    command(Bukkit.getConsoleSender(), cmd);
+  private static void dynamicCommand(LivingEntity entity, String cmd, boolean console) {
+    CommandSender sender = console ? Bukkit.getConsoleSender() : entity;
+    Bukkit.dispatchCommand(sender, PLACEHOLDERS.matcher(cmd).replaceAll(r -> replace(entity, r.group())));
   }
 
-  private static void command(CommandSender sender, String cmd) {
-    Bukkit.dispatchCommand(sender, cmd);
+  private static void command(String cmd) {
+    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
   }
 }

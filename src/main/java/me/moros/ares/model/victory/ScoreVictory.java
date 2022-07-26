@@ -22,6 +22,7 @@ package me.moros.ares.model.victory;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
+import org.bukkit.Bukkit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ScoreVictory implements BattleVictory {
@@ -34,6 +35,7 @@ public class ScoreVictory implements BattleVictory {
   public @Nullable Participant apply(Battle battle) {
     var top = battle.topEntry();
     if (top.getValue().compareTo(score) >= 0) {
+      Bukkit.getConsoleSender().sendMessage(top.getKey().name() + " reached a score of " + top.getValue());
       return top.getKey();
     }
     return null;
@@ -43,6 +45,7 @@ public class ScoreVictory implements BattleVictory {
     if (score <= 0) {
       return b -> null;
     }
+    Bukkit.getConsoleSender().sendMessage("goal score at " + score);
     return new ScoreVictory(score);
   }
 }

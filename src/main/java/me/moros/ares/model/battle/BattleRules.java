@@ -92,7 +92,7 @@ public final class BattleRules {
 
   public BattleVictory condition() {
     BattleVictory scoreCondition = ScoreVictory.of(scoreToWin);
-    BattleVictory timeCondition = TimedVictory.of(duration + preparationTime);
+    BattleVictory timeCondition = TimedVictory.of(duration > 0 ? (duration + preparationTime) : 0);
     return b -> {
       Participant p1 = scoreCondition.apply(b);
       return p1 != null ? p1 : timeCondition.apply(b);
@@ -108,7 +108,7 @@ public final class BattleRules {
     private String name = "default";
     private int teamSize = 1;
     private int teamAmount = 2;
-    private int scoreToWin = 3;
+    private int scoreToWin = 2;
     private long duration = 0;
     private long preparationTime = 3000;
     private String arena = "pvp";
@@ -117,6 +117,10 @@ public final class BattleRules {
 
     private BattleRulesBuilder(String name) {
       this.name = name;
+    }
+
+    public String name() {
+      return name;
     }
 
     public BattleRulesBuilder teamSize(int teamSize) {

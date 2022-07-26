@@ -21,6 +21,7 @@ package me.moros.ares.model.victory;
 
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.participant.Participant;
+import org.bukkit.Bukkit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class TimedVictory implements BattleVictory {
@@ -32,6 +33,7 @@ public class TimedVictory implements BattleVictory {
 
   public @Nullable Participant apply(Battle battle) {
     if (System.currentTimeMillis() >= endTime) {
+      Bukkit.getConsoleSender().sendMessage("time expired");
       return battle.topEntry().getKey();
     }
     return null;
@@ -41,6 +43,7 @@ public class TimedVictory implements BattleVictory {
     if (duration <= 0) {
       return b -> null;
     }
+    Bukkit.getConsoleSender().sendMessage("creating expiration at " + duration);
     return new TimedVictory(duration);
   }
 }

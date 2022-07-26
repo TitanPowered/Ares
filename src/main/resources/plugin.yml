@@ -23,5 +23,4 @@ permissions:
       ares.player: true
       ares.command.create: true
       ares.command.reload: true
-      ares.command.skip: true
       ares.command.debug: true

@@ -36,7 +36,7 @@ public final class DummyParticipant implements Participant {
 
   @Override
   public String name() {
-    return "";
+    return "dummy";
   }
 
   @Override

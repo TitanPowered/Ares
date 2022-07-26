@@ -28,6 +28,7 @@ import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.battle.BattleStat.Keys;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -39,7 +40,6 @@ import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ParticipantListener implements Listener {
@@ -84,7 +84,7 @@ public class ParticipantListener implements Listener {
     return checkStage(game.battleManager().battle(entity), Stage.STARTING);
   }
 
-  @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+  @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
   public void onEntityDeath(EntityDeathEvent event) {
     LivingEntity entity = event.getEntity();
     Battle battle = game.battleManager().battle(entity);
@@ -100,9 +100,27 @@ public class ParticipantListener implements Listener {
           d.value(Keys.KILLS, v -> v + 1);
         }
       });
+      event.setCancelled(true);
+      Component deathMessage;
+      if (killer != null) {
+        deathMessage = killer.name().append(Component.text(" has killed "))
+          .append(entity.name()).append(Component.text("."));
+      } else {
+        deathMessage = entity.name().append(Component.text(" has died."));
+      }
+      entity.getServer().sendMessage(deathMessage);
+      if (battle.testVictory() != null) {
+        battle.complete(game.battleManager());
+      } else {
+        battle.runSteps(game.battleManager());
+      }
     }
-    if (!(entity instanceof Player)) {
-      Registries.PARTICIPANTS.invalidate(entity.getUniqueId());
+  }
+
+  @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+  public void onEntityDeathMonitor(EntityDeathEvent event) {
+    if (!(event.getEntity() instanceof Player)) {
+      Registries.PARTICIPANTS.invalidate(event.getEntity().getUniqueId());
     }
   }
 
@@ -145,15 +163,6 @@ public class ParticipantListener implements Listener {
           }
         });
       }
-    }
-  }
-
-  @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  public void onPlayerRespawn(PlayerRespawnEvent event) {
-    Player player = event.getPlayer();
-    Battle battle = game.battleManager().battle(player);
-    if (checkStage(battle, Stage.ONGOING)) {
-      battle.runSteps(game.battleManager());
     }
   }
 

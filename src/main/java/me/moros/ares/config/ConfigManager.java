@@ -48,7 +48,7 @@ import org.spongepowered.configurate.reference.ConfigurationReference;
 import org.spongepowered.configurate.reference.WatchServiceListener;
 
 public final class ConfigManager {
-  public static final String SUFFIX = ".ares";
+  public static final String RULES_SUFFIX = ".json";
 
   private final Logger logger;
   private final Path rulesDirectory;
@@ -60,6 +60,7 @@ public final class ConfigManager {
   public ConfigManager(Logger logger, String directory) {
     this.logger = logger;
     this.rulesDirectory = Path.of(directory, "rules");
+    gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     Path path = Path.of(directory, "ares.conf");
     try {
       Files.createDirectories(rulesDirectory);
@@ -70,12 +71,11 @@ public final class ConfigManager {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-    BattleRules defaultRules = Objects.requireNonNull(BattleRules.builder("default").build());
     if (!fileExists("default")) {
-      saveRules(defaultRules);
+      BattleRulesBuilder builder = BattleRules.builder("default");
+      saveRules(builder);
+      Registries.RULES.register(Objects.requireNonNull(builder.build()));
     }
-    Registries.RULES.register(defaultRules);
   }
 
   public void save() {
@@ -154,9 +154,9 @@ public final class ConfigManager {
     return null;
   }
 
-  private CompletableFuture<Boolean> saveRules(BattleRules rules) {
+  private CompletableFuture<Boolean> saveRules(BattleRulesBuilder rules) {
     return CompletableFuture.supplyAsync(() -> {
-      Path path = rulesDirectory.resolve(rules.name() + SUFFIX);
+      Path path = rulesDirectory.resolve(rules.name() + RULES_SUFFIX);
       try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(path.toFile()), StandardCharsets.UTF_8)) {
         gson.toJson(rules, writer);
         return true;
@@ -170,10 +170,10 @@ public final class ConfigManager {
   }
 
   private boolean isValidFile(Path path) {
-    return path.getFileName().toString().endsWith(SUFFIX);
+    return path.getFileName().toString().endsWith(RULES_SUFFIX);
   }
 
   private boolean fileExists(String name) {
-    return Files.exists(rulesDirectory.resolve(name + SUFFIX));
+    return Files.exists(rulesDirectory.resolve(name + RULES_SUFFIX));
   }
 }

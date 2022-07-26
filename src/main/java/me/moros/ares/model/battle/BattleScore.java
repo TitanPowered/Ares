@@ -53,6 +53,11 @@ public final class BattleScore implements Comparable<BattleScore> {
   }
 
   @Override
+  public String toString() {
+    return String.valueOf(value);
+  }
+
+  @Override
   public int compareTo(@NotNull BattleScore o) {
     return COMPARATOR.compare(this, o);
   }

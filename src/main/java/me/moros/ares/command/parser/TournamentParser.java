@@ -47,7 +47,7 @@ public final class TournamentParser implements ArgumentParser<CommandSender, Tou
     if (tournament != null) {
       return ArgumentParseResult.success(tournament);
     }
-    return ArgumentParseResult.failure(new Throwable("Could not any tournaments matching " + input));
+    return ArgumentParseResult.failure(new Throwable("Could not find any tournaments matching " + input));
   }
 
   @Override

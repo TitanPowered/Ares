@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 
 import cloud.commandframework.arguments.standard.EnumArgument;
+import cloud.commandframework.arguments.standard.IntegerArgument;
 import cloud.commandframework.arguments.standard.StringArgument;
 import cloud.commandframework.arguments.standard.StringArgument.StringMode;
 import cloud.commandframework.meta.CommandMeta;
@@ -104,6 +105,11 @@ public class AresCommand {
         .argument(tournamentArg.build())
         .argument(rulesArg.build())
         .handler(c -> onStart(c.getSender(), c.get("tournament"), c.get("rules")))
+      ).command(builder.literal("cancel")
+        .meta(CommandMeta.DESCRIPTION, "Cancel the specified tournament")
+        .permission(CommandPermissions.CREATE)
+        .argument(tournamentArg.build())
+        .handler(c -> onCancel(c.getSender(), c.get("tournament")))
       ).command(builder.literal("duel", "d")
         .meta(CommandMeta.DESCRIPTION, "Duel another participant")
         .permission(CommandPermissions.DUEL)
@@ -116,11 +122,6 @@ public class AresCommand {
         .permission(CommandPermissions.LIST)
         .argument(tournamentArg.build())
         .handler(c -> onDetails(c.getSender(), c.get("tournament")))
-      ).command(builder.literal("skip")
-        .meta(CommandMeta.DESCRIPTION, "Skip the current battle for the specified tournament")
-        .permission(CommandPermissions.SKIP)
-        .argument(tournamentArg.build())
-        .handler(c -> onSkip(c.getSender(), c.get("tournament")))
       ).command(builder.literal("leave")
         .meta(CommandMeta.DESCRIPTION, "Leave the current battle")
         .permission(CommandPermissions.LEAVE)
@@ -133,7 +134,8 @@ public class AresCommand {
         .argument(tournamentArg.asRequired().build())
         .argument(EnumArgument.of(EntityType.class, "type"))
         .argument(StringArgument.single("name"))
-        .handler(c -> onDebug((Player) c.getSender(), c.get("tournament"), c.get("type"), c.get("name")))
+        .argument(IntegerArgument.optional("amount", 1))
+        .handler(c -> onDebug((Player) c.getSender(), c.get("tournament"), c.get("type"), c.get("name"), c.get("amount")))
       ).command(builder.literal("help", "h")
         .meta(CommandMeta.DESCRIPTION, "View info about a command")
         .permission(CommandPermissions.HELP)
@@ -194,7 +196,8 @@ public class AresCommand {
       Message.TOURNAMENT_CREATE_INVALID_NAME.send(user, name);
       return;
     }
-    Tournament tournament = new SimpleTournament(validatedName, plugin.configManager().properties().battleInterval());
+    long delay = plugin.configManager().properties().battleInterval();
+    Tournament tournament = new SimpleTournament(validatedName, delay, game.battleManager());
     if (Registries.TOURNAMENTS.register(tournament)) {
       Message.TOURNAMENT_CREATE_SUCCESS.send(user, name);
     } else {
@@ -218,6 +221,11 @@ public class AresCommand {
     }
   }
 
+  private void onCancel(CommandSender user, Tournament tournament) {
+    tournament.finish(false);
+    Message.TOURNAMENT_CANCEL.send(user, tournament.displayName());
+  }
+
   // TODO require duel accept
   private void onDuel(Player player, Participant other, BattleRules rules) {
     if (other.contains(player)) {
@@ -231,16 +239,11 @@ public class AresCommand {
       Message.OTHER_IN_BATTLE.send(player, other.name());
       return;
     }
-    Battle.createBattle(List.of(Participant.of(player), other)).ifPresent(b -> b.start(game.battleManager(), rules));
+    Battle.createBattle(List.of(Participant.of(player), other)).start(game.battleManager(), rules);
   }
 
   private void onDetails(CommandSender user, Tournament tournament) {
     tournament.details().forEach(user::sendMessage);
-  }
-
-  private void onSkip(CommandSender user, Tournament tournament) {
-    tournament.skip(game.battleManager());
-    Message.TOURNAMENT_SKIP.send(user, tournament.displayName());
   }
 
   private void onLeave(Player player) {
@@ -258,22 +261,27 @@ public class AresCommand {
     battle.complete(game.battleManager());
   }
 
-  private void onDebug(Player player, Tournament tournament, EntityType type, String name) {
+  private void onDebug(Player player, Tournament tournament, EntityType type, String name, int amount) {
     Block block = player.getTargetBlockExact(32);
     if (block == null) {
       Location origin = player.getEyeLocation();
       block = origin.add(origin.getDirection().multiply(5)).getBlock();
     }
     if (type.isAlive()) {
-      LivingEntity entity = (LivingEntity) player.getWorld().spawnEntity(block.getLocation(), type);
-      if (entity.isValid()) {
-        entity.customName(Component.text(name));
-        entity.setCustomNameVisible(true);
-        Participant participant = Participant.of(entity);
-        Registries.PARTICIPANTS.register(participant);
-        tournament.addParticipant(participant);
-        return;
+      int counter = 0;
+      for (int i = 1; i <= Math.max(1, amount); i++) {
+        LivingEntity entity = (LivingEntity) player.getWorld().spawnEntity(block.getLocation(), type);
+        if (entity.isValid()) {
+          ++counter;
+          entity.customName(Component.text(name + counter));
+          entity.setCustomNameVisible(true);
+          Participant participant = Participant.of(entity);
+          Registries.PARTICIPANTS.register(participant);
+          tournament.addParticipant(participant);
+        }
       }
+      player.sendMessage(Component.text("Spawned " + counter + " " + type.name()));
+      return;
     }
     player.sendMessage(Component.text("Unable to spawn entity"));
   }

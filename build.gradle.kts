@@ -27,10 +27,6 @@ dependencies {
     compileOnly("me.moros", "bending-api", "2.0.0-SNAPSHOT")
     compileOnly("me.moros", "gaia-core", "1.8.0-SNAPSHOT")
     compileOnly("com.sk89q.worldedit", "worldedit-core", "7.2.6")
-    implementation("com.github.ben-manes.caffeine", "caffeine", "3.0.6") {
-        exclude(module = "checker-qual")
-    }
-    implementation("org.bstats", "bstats-bukkit", "2.2.1")
     implementation("cloud.commandframework","cloud-paper", "1.7.0")
     implementation("cloud.commandframework","cloud-minecraft-extras", "1.7.0") {
         exclude(group = "net.kyori")
@@ -49,8 +45,6 @@ tasks {
         archiveClassifier.set("")
         archiveBaseName.set(project.name)
         dependencies {
-            relocate("com.github.benmanes.caffeine", "me.moros.ares.internal.caffeine")
-            relocate("org.bstats", "me.moros.ares.bstats")
             relocate("cloud.commandframework", "me.moros.ares.internal.cf")
             relocate("com.typesafe", "me.moros.ares.internal.typesafe")
             relocate("io.leangen", "me.moros.ares.internal.leangen")

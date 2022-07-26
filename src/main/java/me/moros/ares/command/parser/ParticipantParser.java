@@ -51,7 +51,7 @@ public final class ParticipantParser implements ArgumentParser<CommandSender, Pa
     if (participant != null) {
       return ArgumentParseResult.success(participant);
     }
-    return ArgumentParseResult.failure(new Throwable("Could not any entity matching " + input));
+    return ArgumentParseResult.failure(new Throwable("Could not find any entity matching " + input));
   }
 
   @Override

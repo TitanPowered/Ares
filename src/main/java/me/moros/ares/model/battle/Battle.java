@@ -22,10 +22,10 @@ package me.moros.ares.model.battle;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
@@ -48,22 +48,26 @@ public interface Battle extends Iterable<Participant> {
 
   Map<Participant, BattleData> complete(BattleManager manager);
 
+  void onComplete(@Nullable Consumer<Battle> consumer);
+
   Stage stage();
 
   @Nullable Participant testVictory();
 
   void forEachEntry(BiConsumer<Participant, BattleData> consumer);
 
-  static Optional<Battle> createBattle(Collection<Participant> parties) {
-    if (!parties.isEmpty() && parties.stream().allMatch(Participant::isValid)) {
+  static Battle createBattle(Collection<Participant> parties) {
+    if (parties.isEmpty()) {
+      throw new RuntimeException("Can't create a battle with no participants!");
+    }
+    if (parties.stream().allMatch(Participant::isValid)) {
       Collection<LivingEntity> col = parties.stream().flatMap(Participant::members).toList();
       int unique = Set.copyOf(col).size();
-      if (col.size() == unique) {
-        Battle battle = unique > 1 ? new BattleImpl(parties) : new DefaultedBattle(parties.iterator().next());
-        return Optional.of(battle);
+      if (col.size() == unique && unique > 1) {
+        return new BattleImpl(parties);
       }
     }
-    return Optional.empty();
+    return new DefaultedBattle(parties.iterator().next());
   }
 
   enum Stage {

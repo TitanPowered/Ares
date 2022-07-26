@@ -20,6 +20,7 @@
 package me.moros.ares.game;
 
 import me.moros.ares.Ares;
+import me.moros.ares.model.tournament.Tournament;
 import me.moros.ares.registry.Registries;
 
 public class Game {
@@ -31,7 +32,7 @@ public class Game {
   }
 
   private void update() {
-    Registries.TOURNAMENTS.stream().filter(t -> !t.isOpen()).toList().forEach(t -> t.update(battleManager));
+    Registries.TOURNAMENTS.stream().filter(t -> !t.isOpen()).toList().forEach(Tournament::update);
   }
 
   public BattleManager battleManager() {

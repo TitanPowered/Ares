@@ -34,7 +34,6 @@ public final class CommandPermissions {
   public static final CommandPermission JOIN = create("join");
   public static final CommandPermission CREATE = create("create");
   public static final CommandPermission RELOAD = create("reload");
-  public static final CommandPermission SKIP = create("skip");
   public static final CommandPermission DEBUG = create("debug");
 
 

@@ -19,22 +19,17 @@
 
 package me.moros.ares.model.tournament;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
-import me.moros.ares.game.BattleManager;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.BattleRules;
-import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 
-import static net.kyori.adventure.text.Component.*;
+import static net.kyori.adventure.text.Component.newline;
+import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public interface Tournament {
@@ -52,9 +47,13 @@ public interface Tournament {
 
   boolean start(BattleRules rules);
 
-  void update(BattleManager manager);
+  void update();
 
-  boolean finish();
+  default boolean finish() {
+    return finish(true);
+  }
+
+  boolean finish(boolean sendFeedback);
 
   boolean addParticipant(Participant participant);
 
@@ -66,25 +65,7 @@ public interface Tournament {
 
   boolean addBattle(Battle battle);
 
-  Stream<Battle> currentBattles();
-
   int size();
 
-  void skip(BattleManager manager);
-
-  default Collection<Component> details() {
-    Collection<Component> components = new ArrayList<>();
-    components.add(displayName());
-    for (Battle battle : currentBattles().toList()) {
-      BattleScore top = battle.topEntry().getValue();
-      Collection<Component> participants = new ArrayList<>();
-      battle.forEachEntry((p, d) -> {
-        Style style = Style.style().color(battle.stage().color())
-          .decoration(TextDecoration.BOLD, d.score().compareTo(top) >= 0).build();
-        participants.add(text(p.name(), style));
-      });
-      components.add(join(JoinConfiguration.separator(text(" vs ")), participants));
-    }
-    return components;
-  }
+  Collection<Component> details();
 }

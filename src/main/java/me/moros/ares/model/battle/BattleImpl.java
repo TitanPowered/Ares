@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,6 +43,7 @@ public class BattleImpl implements Battle {
   private BattleVictory condition = x -> null;
   private BattleRules rules;
   private Stage stage = Stage.CREATED;
+  private Consumer<Battle> consumer;
 
   BattleImpl(Collection<Participant> parties) {
     this(parties, BattleScore.ZERO);
@@ -85,6 +87,7 @@ public class BattleImpl implements Battle {
 
   @Override
   public CompletableFuture<Void> runSteps(BattleManager manager) {
+    stage = Stage.STARTING;
     Collection<Participant> participants = List.copyOf(parties.keySet());
     StepParser.parseAndExecute(this.rules.steps(), participants);
     return manager.gaia().map(g -> g.teleportParticipants(participants, rules.arena()))
@@ -94,7 +97,6 @@ public class BattleImpl implements Battle {
 
   private void runPreparation(BattleManager manager) {
     if (rules.preparationTime() > 0) {
-      stage = Stage.STARTING;
       long delay = rules.preparationTime() / 50L;
       manager.async(this::mainStage, delay);
     } else {
@@ -113,9 +115,19 @@ public class BattleImpl implements Battle {
     if (stage != Stage.COMPLETED) {
       stage = Stage.COMPLETED;
       manager.clearBattle(this);
-      StepParser.parseAndExecute(this.rules.cleanupSteps(), List.copyOf(parties.keySet()));
+      if (this.rules != null) {
+        StepParser.parseAndExecute(this.rules.cleanupSteps(), List.copyOf(parties.keySet()));
+      }
+      if (consumer != null) {
+        consumer.accept(this);
+      }
     }
     return Map.copyOf(parties);
+  }
+
+  @Override
+  public void onComplete(@Nullable Consumer<Battle> consumer) {
+    this.consumer = consumer;
   }
 
   @Override
