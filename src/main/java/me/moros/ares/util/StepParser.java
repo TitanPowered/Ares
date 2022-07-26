@@ -31,8 +31,10 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class StepParser {
   private static final Pattern PLACEHOLDERS = Pattern.compile("<(name|uuid)>");
@@ -57,6 +59,12 @@ public final class StepParser {
         case "cmd" -> entities.forEach(e -> dynamicCommand(e, value, false));
         case "console" -> entities.forEach(e -> dynamicCommand(e, value, true));
         case "global" -> command(value);
+        case "teleport" -> {
+          Location loc = location(value.split("\\s+"));
+          if (loc != null) {
+            entities.forEach(e -> teleport(e, loc.clone()));
+          }
+        }
       }
     }
   }
@@ -100,5 +108,33 @@ public final class StepParser {
 
   private static void command(String cmd) {
     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+  }
+
+  private static void teleport(LivingEntity entity, Location location) {
+    location.setWorld(entity.getWorld());
+    entity.teleportAsync(location);
+  }
+
+  public static @Nullable Location location(String[] args) {
+    if (args.length < 3) {
+      return null;
+    }
+    double[] coords = new double[3];
+    for (int i = 0; i < 3; i++) {
+      try {
+        coords[i] = Double.parseDouble(args[i]);
+      } catch (Exception e) {
+        return null;
+      }
+    }
+
+    float[] dir = new float[] {0, 0};
+    for (int i = 3; i < args.length; i++) {
+      try {
+        dir[i - 3] = Float.parseFloat(args[i]);
+      } catch (Exception ignore) {
+      }
+    }
+    return new Location(null, coords[0], coords[1], coords[2], dir[0], dir[1]);
   }
 }

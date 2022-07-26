@@ -39,7 +39,7 @@ public final class TournamentParser implements ArgumentParser<CommandSender, Tou
     }
     inputQueue.remove();
     Tournament tournament;
-    if (input.equalsIgnoreCase("default")) {
+    if (input.equalsIgnoreCase("")) {
       tournament = Registries.TOURNAMENTS.stream().filter(Tournament::isOpen).findFirst().orElse(null);
     } else {
       tournament = Registries.TOURNAMENTS.get(input);

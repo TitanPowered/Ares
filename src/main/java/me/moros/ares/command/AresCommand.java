@@ -67,7 +67,7 @@ public class AresCommand {
       .meta(CommandMeta.DESCRIPTION, "Base command for Ares");
     var participantArg = manager.argumentBuilder(Participant.class, "participant");
     var tournamentArg = manager.argumentBuilder(Tournament.class, "tournament")
-      .asOptionalWithDefault("default");
+      .asOptionalWithDefault("");
     var rulesArg = manager.argumentBuilder(BattleRules.class, "rules")
       .asOptionalWithDefault("default");
 
