@@ -20,32 +20,42 @@
 package me.moros.ares.model.battle;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.UnaryOperator;
 
 import me.moros.ares.model.battle.BattleStat.Keys;
+import me.moros.ares.model.participant.Participant;
 
 public class BattleData implements Comparable<BattleData> {
+  private final Participant participant;
   private final Map<String, Double> data;
+  private final Consumer<BattleData> onScoreChange;
   private BattleScore score;
 
-  private BattleData(BattleScore score) {
-    data = new ConcurrentHashMap<>();
+  BattleData(Participant participant, BattleScore score, Consumer<BattleData> onScoreChange) {
+    this.participant = participant;
+    this.data = new ConcurrentHashMap<>();
+    this.onScoreChange = onScoreChange;
     for (BattleStat stat : Keys.VALUES) {
-      data.put(stat.key(), stat.defaultValue());
+      this.data.put(stat.key(), stat.defaultValue());
     }
     this.score = score;
+  }
+
+  public Participant participant() {
+    return participant;
   }
 
   public BattleScore score() {
     return score;
   }
 
-  public BattleData score(UnaryOperator<BattleScore> function) {
-    this.score = function.apply(score);
-    return this;
+  public BattleScore score(UnaryOperator<BattleScore> function) {
+    score = function.apply(score);
+    onScoreChange.accept(this);
+    return score;
   }
 
   public double value(BattleStat stat) {
@@ -57,12 +67,20 @@ public class BattleData implements Comparable<BattleData> {
     return this;
   }
 
-  public static BattleData create() {
-    return new BattleData(BattleScore.ZERO);
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof BattleData other) {
+      return participant.equals(other.participant);
+    }
+    return false;
   }
 
-  public static BattleData create(BattleScore score) {
-    return new BattleData(Objects.requireNonNull(score));
+  @Override
+  public int hashCode() {
+    return participant.hashCode();
   }
 
   @Override

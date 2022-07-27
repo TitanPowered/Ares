@@ -44,12 +44,22 @@ public interface Message {
   Args0 TOURNAMENT_LIST_HEADER = () -> translatable("ares.command.tournament.list.header", GOLD);
   Args0 TOURNAMENT_LIST_EMPTY = () -> translatable("ares.command.tournament.list.empty", YELLOW);
 
-  Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join.started", YELLOW)
+  Args1<Component> TOURNAMENT_ALREADY_JOINED = tournament -> translatable("ares.command.tournament.join.rejoin", YELLOW)
     .args(tournament);
   Args1<Component> TOURNAMENT_JOIN_SUCCESS = tournament -> translatable("ares.command.tournament.join.success", GREEN)
     .args(tournament);
   Args1<Component> TOURNAMENT_JOIN_FAIL = tournament -> translatable("ares.command.tournament.join.fail", RED)
     .args(tournament);
+
+  Args2<String, Component> TOURNAMENT_ADD_SUCCESS = (name, tournament) -> translatable("ares.command.tournament.add.success", GREEN)
+    .args(text(name), tournament);
+  Args2<String, Component> TOURNAMENT_ADD_FAIL = (name, tournament) -> translatable("ares.command.tournament.add.fail", RED)
+    .args(text(name), tournament);
+
+  Args2<String, Component> TOURNAMENT_REMOVE_SUCCESS = (name, tournament) -> translatable("ares.command.tournament.remove.success", GREEN)
+    .args(text(name), tournament);
+  Args2<String, Component> TOURNAMENT_REMOVE_FAIL = (name, tournament) -> translatable("ares.command.tournament.remove.fail", RED)
+    .args(text(name), tournament);
 
   Args1<String> TOURNAMENT_CREATE_INVALID_NAME = name -> translatable("ares.command.tournament.create.invalid", RED)
     .args(text(name));
@@ -65,7 +75,15 @@ public interface Message {
     .args(tournament);
   Args1<Component> TOURNAMENT_CLOSED = tournament -> translatable("ares.command.tournament.closed", YELLOW)
     .args(tournament);
+  Args1<Component> TOURNAMENT_NOT_STARTED = tournament -> translatable("ares.command.tournament.not-started", RED)
+    .args(tournament);
+  Args1<Component> TOURNAMENT_PROGRESSING = tournament -> translatable("ares.command.tournament.progressing", YELLOW)
+    .args(tournament);
   Args1<Component> TOURNAMENT_CANCEL = tournament -> translatable("ares.command.tournament.cancel", YELLOW)
+    .args(tournament);
+  Args1<Component> TOURNAMENT_AUTO_ON = tournament -> translatable("ares.command.tournament.auto.on", GREEN)
+    .args(tournament);
+  Args1<Component> TOURNAMENT_AUTO_OFF = tournament -> translatable("ares.command.tournament.auto.off", GREEN)
     .args(tournament);
 
   Args3<Component, Integer, String> TOURNAMENT_RESULT = (tournament, position, score) -> translatable("ares.command.tournament.result", AQUA)

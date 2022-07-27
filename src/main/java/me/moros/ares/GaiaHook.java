@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import me.moros.ares.model.participant.Participant;
+import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.gaia.GaiaPlugin;
 import me.moros.gaia.api.Arena;
 import me.moros.gaia.api.ArenaPoint;
@@ -42,7 +42,7 @@ public class GaiaHook {
     gaia = (GaiaPlugin) plugin;
   }
 
-  public CompletableFuture<Void> teleportParticipants(Collection<Participant> participants, String arenaName) {
+  public CompletableFuture<Void> teleportParticipants(CachedParticipants cache, String arenaName) {
     Arena arena = gaia.arenaManager().arena(arenaName).orElse(null);
     World world = arena == null ? null : Bukkit.getWorld(arena.worldUID());
     if (arena != null && world != null) {
@@ -50,12 +50,11 @@ public class GaiaHook {
       if (points.size() > 1) {
         Iterator<ArenaPoint> it = arena.points().iterator();
         Collection<CompletableFuture<Boolean>> futures = new ArrayList<>();
-        for (Participant participant : participants) {
+        Iterator<LivingEntity> entityIt = cache.entityIterator();
+        while (entityIt.hasNext()) {
           it = it.hasNext() ? it : points.iterator();
           Location loc = fromPoint(world, it.next());
-          for (LivingEntity entity : participant.members().toList()) {
-            futures.add(entity.teleportAsync(loc));
-          }
+          futures.add(entityIt.next().teleportAsync(loc));
         }
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
       }

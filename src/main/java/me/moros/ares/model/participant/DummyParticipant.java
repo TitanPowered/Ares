@@ -45,22 +45,22 @@ public final class DummyParticipant implements Participant {
   }
 
   @Override
-  public boolean isValid() {
-    return false;
+  public Stream<LivingEntity> stream() {
+    return Stream.of();
   }
 
   @Override
-  public Stream<LivingEntity> members() {
-    return Stream.empty();
-  }
-
-  @Override
-  public @NonNull Iterable<? extends Audience> audiences() {
-    return List.of();
+  public int size() {
+    return 0;
   }
 
   @Override
   public @NonNull UUID uuid() {
     return DEFAULT_UUID;
+  }
+
+  @Override
+  public @NonNull Iterable<? extends Audience> audiences() {
+    return List.of();
   }
 }

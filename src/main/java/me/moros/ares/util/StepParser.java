@@ -21,11 +21,11 @@ package me.moros.ares.util;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.ares.model.participant.Participant;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -42,8 +42,7 @@ public final class StepParser {
   private StepParser() {
   }
 
-  public static void parseAndExecute(Collection<String> steps, Collection<Participant> participants) {
-    List<LivingEntity> entities = participants.stream().flatMap(Participant::members).toList();
+  public static void parseAndExecute(Collection<String> steps, CachedParticipants cache) {
     for (String step : steps) {
       String[] arr = step.split(":", 2);
       if (arr.length != 2) {
@@ -54,15 +53,15 @@ public final class StepParser {
         return;
       }
       switch (arr[0].toLowerCase(Locale.ROOT)) {
-        case "msg" -> msg(Audience.audience(participants), replace(participants.iterator(), value));
-        case "broadcast" -> msg(Bukkit.getServer(), replace(participants.iterator(), value));
-        case "cmd" -> entities.forEach(e -> dynamicCommand(e, value, false));
-        case "console" -> entities.forEach(e -> dynamicCommand(e, value, true));
+        case "msg" -> msg(cache, replace(cache.iterator(), value));
+        case "broadcast" -> msg(Bukkit.getServer(), replace(cache.iterator(), value));
+        case "cmd" -> cache.entities().forEach(e -> dynamicCommand(e, value, false));
+        case "console" -> cache.entities().forEach(e -> dynamicCommand(e, value, true));
         case "global" -> command(value);
         case "teleport" -> {
           Location loc = location(value.split("\\s+"));
           if (loc != null) {
-            entities.forEach(e -> teleport(e, loc.clone()));
+            cache.entities().forEach(e -> teleport(e, loc.clone()));
           }
         }
       }
@@ -128,7 +127,7 @@ public final class StepParser {
       }
     }
 
-    float[] dir = new float[] {0, 0};
+    float[] dir = new float[]{0, 0};
     for (int i = 3; i < args.length; i++) {
       try {
         dir[i - 3] = Float.parseFloat(args[i]);

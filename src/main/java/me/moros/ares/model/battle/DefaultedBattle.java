@@ -19,50 +19,48 @@
 
 package me.moros.ares.model.battle;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.ares.model.participant.Participant;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class DefaultedBattle implements Battle {
-  private final Participant participant;
   private final BattleData data;
+  private final CachedParticipants cache;
 
   DefaultedBattle(Participant participant) {
     this(participant, new BattleScore(1));
   }
 
   DefaultedBattle(Participant participant, BattleScore score) {
-    this.participant = participant;
-    this.data = BattleData.create(score);
+    this.cache = new CachedParticipants(Set.of(participant));
+    this.data = new BattleData(participant, score, s -> {
+    });
   }
 
   @Override
-  public Map<Participant, BattleScore> scores() {
-    return Map.of(participant, data.score());
+  public CachedParticipants cache() {
+    return cache;
   }
 
   @Override
-  public Stream<Participant> participants() {
-    return Stream.of(participant);
+  public BattleData topEntry() {
+    return data;
   }
 
   @Override
-  public Entry<Participant, BattleScore> topEntry() {
-    return Map.entry(participant, data.score());
-  }
-
-  @Override
-  public boolean start(BattleManager manager, BattleRules rules) {
-    return false;
+  public boolean start(BattleManager manager, BattleRules rules, @Nullable Consumer<Battle> consumer) {
+    if (consumer != null) {
+      consumer.accept(this);
+    }
+    return true;
   }
 
   @Override
@@ -71,12 +69,8 @@ public class DefaultedBattle implements Battle {
   }
 
   @Override
-  public Map<Participant, BattleData> complete(BattleManager manager) {
-    return Map.of(participant, data);
-  }
-
-  @Override
-  public void onComplete(@Nullable Consumer<Battle> consumer) {
+  public Collection<BattleData> complete(BattleManager manager) {
+    return List.of(data);
   }
 
   @Override
@@ -86,16 +80,11 @@ public class DefaultedBattle implements Battle {
 
   @Override
   public Participant testVictory() {
-    return participant;
+    return data.participant();
   }
 
   @Override
-  public void forEachEntry(BiConsumer<Participant, BattleData> consumer) {
-    consumer.accept(participant, data);
-  }
-
-  @Override
-  public Iterator<Participant> iterator() {
-    return List.of(participant).iterator();
+  public Iterator<BattleData> iterator() {
+    return List.of(data).iterator();
   }
 }

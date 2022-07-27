@@ -17,30 +17,16 @@
  * along with Ares. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.moros.ares.model.victory;
+package me.moros.ares.model;
 
-import me.moros.ares.model.battle.Battle;
-import me.moros.ares.model.participant.Participant;
-import org.checkerframework.checker.nullness.qual.Nullable;
+public final class ValueReference<T> {
+  private T value;
 
-public class TimedVictory implements BattleVictory {
-  private final long endTime;
-
-  private TimedVictory(long duration) {
-    this.endTime = System.currentTimeMillis() + duration;
+  public T get() {
+    return value;
   }
 
-  public @Nullable Participant apply(Battle battle) {
-    if (System.currentTimeMillis() >= endTime) {
-      return battle.topEntry().participant();
-    }
-    return null;
-  }
-
-  public static BattleVictory of(long duration) {
-    if (duration <= 0) {
-      return b -> null;
-    }
-    return new TimedVictory(duration);
+  public void set(T value) {
+    this.value = value;
   }
 }

@@ -21,8 +21,6 @@ package me.moros.ares.model.battle;
 
 import java.util.Comparator;
 
-import org.jetbrains.annotations.NotNull;
-
 public final class BattleScore implements Comparable<BattleScore> {
   public static final Comparator<BattleScore> COMPARATOR = Comparator.comparingInt(BattleScore::value);
   public static final BattleScore ZERO = new BattleScore(0);
@@ -58,7 +56,7 @@ public final class BattleScore implements Comparable<BattleScore> {
   }
 
   @Override
-  public int compareTo(@NotNull BattleScore o) {
+  public int compareTo(BattleScore o) {
     return COMPARATOR.compare(this, o);
   }
 }

@@ -19,62 +19,76 @@
 
 package me.moros.ares.model.battle;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
+import java.util.function.Predicate;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.ares.model.participant.Participant;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.entity.LivingEntity;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public interface Battle extends Iterable<Participant> {
-  Map<Participant, BattleScore> scores();
+public interface Battle extends Iterable<BattleData> {
+  JoinConfiguration SEP = JoinConfiguration.separator(Component.text(" vs "));
 
-  Stream<Participant> participants();
+  CachedParticipants cache();
 
-  Entry<Participant, BattleScore> topEntry();
+  BattleData topEntry();
 
-  boolean start(BattleManager manager, BattleRules rules);
+  default boolean start(BattleManager manager, BattleRules rules) {
+    return start(manager, rules, null);
+  }
+
+  boolean start(BattleManager manager, BattleRules rules, @Nullable Consumer<Battle> consumer);
 
   CompletableFuture<Void> runSteps(BattleManager manager);
 
-  Map<Participant, BattleData> complete(BattleManager manager);
-
-  void onComplete(@Nullable Consumer<Battle> consumer);
+  Collection<BattleData> complete(BattleManager manager);
 
   Stage stage();
 
   @Nullable Participant testVictory();
 
-  void forEachEntry(BiConsumer<Participant, BattleData> consumer);
-
   static Battle createBattle(Collection<Participant> parties) {
-    if (parties.isEmpty()) {
+    Set<Participant> set = Set.copyOf(parties);
+    if (set.size() < 1) {
       throw new RuntimeException("Can't create a battle with no participants!");
     }
-    if (parties.stream().allMatch(Participant::isValid)) {
-      Collection<LivingEntity> col = parties.stream().flatMap(Participant::members).toList();
+    if (set.stream().allMatch(Participant::isValid)) {
+      Collection<LivingEntity> col = set.stream().flatMap(Participant::stream).toList();
       int unique = Set.copyOf(col).size();
-      if (col.size() == unique && unique > 1) {
-        return new BattleImpl(parties);
+      if (unique > 1 && col.size() == unique) {
+        return new BattleImpl(set);
       }
     }
-    return new DefaultedBattle(parties.iterator().next());
+    return new DefaultedBattle(set.iterator().next());
+  }
+
+  default Component details() {
+    BattleData top = topEntry();
+    Predicate<BattleData> style = d -> d.score().compareTo(BattleScore.ZERO) > 0 && d.compareTo(top) >= 0;
+    Collection<Component> participants = new ArrayList<>();
+    forEach(d -> participants.add(Component.text(d.participant().name(), color(style.test(d)))));
+    return Component.join(SEP, participants).color(stage().color());
+  }
+
+  private TextColor color(boolean top) {
+    return top ? NamedTextColor.GREEN : NamedTextColor.RED;
   }
 
   enum Stage {
-    CREATED(NamedTextColor.WHITE),
-    STARTING(NamedTextColor.RED),
+    CREATED(NamedTextColor.GRAY),
+    STARTING(NamedTextColor.YELLOW),
     ONGOING(NamedTextColor.YELLOW),
-    COMPLETED(NamedTextColor.GREEN);
+    COMPLETED(NamedTextColor.GRAY);
 
     private final TextColor color;
 

@@ -33,8 +33,8 @@ public class ScoreVictory implements BattleVictory {
 
   public @Nullable Participant apply(Battle battle) {
     var top = battle.topEntry();
-    if (top.getValue().compareTo(score) >= 0) {
-      return top.getKey();
+    if (top.score().compareTo(score) >= 0) {
+      return top.participant();
     }
     return null;
   }

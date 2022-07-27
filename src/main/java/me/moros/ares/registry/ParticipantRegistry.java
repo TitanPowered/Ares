@@ -22,11 +22,13 @@ package me.moros.ares.registry;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import me.moros.ares.model.participant.Participant;
+import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class ParticipantRegistry implements Registry<Participant> {
@@ -46,6 +48,10 @@ public final class ParticipantRegistry implements Registry<Participant> {
 
   public @Nullable Participant get(UUID uuid) {
     return participants.get(uuid);
+  }
+
+  public Participant get(Player player) {
+    return Objects.requireNonNull(participants.get(player.getUniqueId()));
   }
 
   public Stream<Participant> stream() {

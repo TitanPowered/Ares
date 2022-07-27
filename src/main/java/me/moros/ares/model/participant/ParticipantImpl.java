@@ -19,7 +19,6 @@
 
 package me.moros.ares.model.participant;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
@@ -33,13 +32,13 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 public class ParticipantImpl implements Participant {
   private final UUID uuid;
   private final String name;
-  private final Set<LivingEntity> members;
+  private final Set<LivingEntity> entities;
 
-  ParticipantImpl(Collection<LivingEntity> members) {
-    var first = members.stream().min(Comparator.comparing(Entity::getUniqueId)).orElseThrow();
+  ParticipantImpl(Set<LivingEntity> entities) {
+    var first = entities.stream().min(Comparator.comparing(Entity::getUniqueId)).orElseThrow();
     this.name = first.getName();
     this.uuid = first.getUniqueId();
-    this.members = Set.copyOf(members);
+    this.entities = Set.copyOf(entities);
   }
 
   @Override
@@ -54,17 +53,17 @@ public class ParticipantImpl implements Participant {
 
   @Override
   public boolean contains(LivingEntity entity) {
-    return members.contains(entity);
+    return entities.contains(entity);
   }
 
   @Override
-  public Stream<LivingEntity> members() {
-    return members.stream();
+  public Stream<LivingEntity> stream() {
+    return entities.stream();
   }
 
   @Override
-  public @NonNull Iterable<? extends Audience> audiences() {
-    return members;
+  public int size() {
+    return entities.size();
   }
 
   @Override
@@ -73,7 +72,7 @@ public class ParticipantImpl implements Participant {
       return true;
     }
     if (obj instanceof ParticipantImpl other) {
-      return uuid.equals(other.uuid) && name.equals(other.name) && members.equals(other.members);
+      return uuid.equals(other.uuid) && name.equals(other.name) && entities.equals(other.entities);
     }
     return false;
   }
@@ -82,7 +81,12 @@ public class ParticipantImpl implements Participant {
   public int hashCode() {
     int result = uuid.hashCode();
     result = 31 * result + name.hashCode();
-    result = 31 * result + members.hashCode();
+    result = 31 * result + entities.hashCode();
     return result;
+  }
+
+  @Override
+  public @NonNull Iterable<? extends Audience> audiences() {
+    return entities;
   }
 }

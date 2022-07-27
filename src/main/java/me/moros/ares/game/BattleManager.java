@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import me.moros.ares.GaiaHook;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.Battle.Stage;
+import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -71,13 +72,22 @@ public class BattleManager {
 
   public void addBattle(Battle battle) {
     if (battle.stage() != Stage.COMPLETED) {
-      battle.participants().flatMap(Participant::members).map(Entity::getUniqueId)
-        .forEach(uuid -> activeBattles.put(uuid, battle));
+      battle.cache().entities().stream().map(Entity::getUniqueId).forEach(uuid -> activeBattles.put(uuid, battle));
     }
   }
 
   public void clearBattle(Battle battle) {
-    battle.participants().flatMap(Participant::members).map(Entity::getUniqueId).forEach(activeBattles::remove);
+    battle.cache().entities().stream().map(Entity::getUniqueId).forEach(activeBattles::remove);
+  }
+
+  public void cancelBattle(Battle battle, LivingEntity cause) {
+    battle.forEach(d -> {
+      Participant participant = d.participant();
+      if (!participant.contains(cause)) {
+        d.score(BattleScore::increment);
+      }
+    });
+    battle.complete(this);
   }
 
   public Optional<GaiaHook> gaia() {

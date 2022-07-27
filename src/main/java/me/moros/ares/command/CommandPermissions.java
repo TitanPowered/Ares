@@ -32,7 +32,7 @@ public final class CommandPermissions {
   public static final CommandPermission DUEL = create("duel");
   public static final CommandPermission LEAVE = create("leave");
   public static final CommandPermission JOIN = create("join");
-  public static final CommandPermission CREATE = create("create");
+  public static final CommandPermission MANAGE = create("manage");
   public static final CommandPermission RELOAD = create("reload");
   public static final CommandPermission DEBUG = create("debug");
 

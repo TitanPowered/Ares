@@ -21,6 +21,6 @@ permissions:
     description: Grants access to all administrative Ares commands
     children:
       ares.player: true
-      ares.command.create: true
+      ares.command.manage: true
       ares.command.reload: true
       ares.command.debug: true

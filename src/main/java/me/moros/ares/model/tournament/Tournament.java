@@ -19,53 +19,82 @@
 
 package me.moros.ares.model.tournament;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
-import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.model.participant.Participant;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 
-import static net.kyori.adventure.text.Component.newline;
-import static net.kyori.adventure.text.Component.text;
-import static net.kyori.adventure.text.format.NamedTextColor.*;
-
-public interface Tournament {
+public interface Tournament extends Iterable<Round> {
   String name();
 
   default Component displayName() {
-    Component hover = text().append(text("Participants: ", AQUA))
-      .append(text(size(), GOLD)).append(newline())
-      .append(text("Registrations: ", AQUA))
-      .append(isOpen() ? text("Open", GREEN) : text("Closed", RED)).build();
-    return text().append(text(name(), AQUA)).hoverEvent(HoverEvent.showText(hover)).build();
+    Component hover = Component.text()
+      .append(Component.text("Participants: ", NamedTextColor.AQUA))
+      .append(Component.text(size(), NamedTextColor.GOLD)).append(Component.newline())
+      .append(Component.text("Status: ", NamedTextColor.AQUA))
+      .append(status().display()).build();
+    return Component.text(name(), NamedTextColor.AQUA).hoverEvent(HoverEvent.showText(hover));
   }
 
-  boolean isOpen();
+  Status status();
+
+  default boolean canRegister() {
+    return status() == Status.OPEN;
+  }
+
+  boolean auto();
+
+  boolean auto(boolean value);
 
   boolean start(BattleRules rules);
 
-  void update();
-
-  default boolean finish() {
-    return finish(true);
-  }
+  boolean update();
 
   boolean finish(boolean sendFeedback);
 
-  boolean addParticipant(Participant participant);
+  boolean add(Participant participant);
 
-  boolean removeParticipant(Participant participant);
+  boolean remove(Participant participant);
 
-  boolean hasParticipant(Participant participant);
+  boolean contains(Participant participant);
 
   Stream<Participant> participants();
 
-  boolean addBattle(Battle battle);
-
   int size();
 
-  Collection<Component> details();
+  default Collection<Component> details() {
+    Collection<Component> components = new ArrayList<>();
+    components.add(displayName());
+    int roundCounter = 0;
+    for (Round round : this) {
+      ++roundCounter;
+      components.add(Component.text("Round " + roundCounter, NamedTextColor.GOLD));
+      if (components.addAll(round.details())) {
+        components.add(Component.newline());
+      }
+    }
+    return components;
+  }
+
+  enum Status {
+    OPEN("Registrations Open", NamedTextColor.GREEN),
+    CLOSED("Registrations Closed", NamedTextColor.RED),
+    COMPLETED("Completed", NamedTextColor.GRAY);
+
+    private final Component display;
+
+    Status(String value, TextColor color) {
+      this.display = Component.text(value, color);
+    }
+
+    public Component display() {
+      return display;
+    }
+  }
 }

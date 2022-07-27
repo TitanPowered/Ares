@@ -19,6 +19,8 @@
 
 package me.moros.ares.listener;
 
+import java.util.UUID;
+
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import io.papermc.paper.event.entity.EntityMoveEvent;
 import me.moros.ares.game.Game;
@@ -90,13 +92,14 @@ public class ParticipantListener implements Listener {
     Battle battle = game.battleManager().battle(entity);
     LivingEntity killer = killer(entity);
     if (checkStage(battle, Stage.ONGOING)) {
-      battle.forEachEntry((p, d) -> {
-        if (!p.contains(entity)) {
+      battle.forEach(d -> {
+        Participant participant = d.participant();
+        if (!participant.contains(entity)) {
           d.score(BattleScore::increment);
         } else {
           d.value(Keys.DEATHS, v -> v + 1);
         }
-        if (killer != null && p.contains(killer)) {
+        if (killer != null && participant.contains(killer)) {
           d.value(Keys.KILLS, v -> v + 1);
         }
       });
@@ -120,7 +123,13 @@ public class ParticipantListener implements Listener {
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
   public void onEntityDeathMonitor(EntityDeathEvent event) {
     if (!(event.getEntity() instanceof Player)) {
-      Registries.PARTICIPANTS.invalidate(event.getEntity().getUniqueId());
+      UUID uuid = event.getEntity().getUniqueId();
+      if (Registries.PARTICIPANTS.invalidate(uuid)) {
+        Battle battle = game.battleManager().battle(uuid);
+        if (battle != null) {
+          game.battleManager().cancelBattle(battle, event.getEntity());
+        }
+      }
     }
   }
 
@@ -143,8 +152,8 @@ public class ParticipantListener implements Listener {
       Battle battle = game.battleManager().battle(source);
       Battle battle2 = game.battleManager().battle(target);
       if (battle != null && battle.equals(battle2) && checkStage(battle, Stage.ONGOING)) {
-        battle.forEachEntry((p, d) -> {
-          if (p.contains(source)) {
+        battle.forEach(d -> {
+          if (d.participant().contains(source)) {
             d.value(Keys.DAMAGE, v -> v + event.getFinalDamage());
           }
         });
@@ -157,8 +166,8 @@ public class ParticipantListener implements Listener {
     if (event.getEntity() instanceof LivingEntity entity) {
       Battle battle = game.battleManager().battle(entity);
       if (checkStage(battle, Stage.ONGOING)) {
-        battle.forEachEntry((p, d) -> {
-          if (p.contains(entity)) {
+        battle.forEach(d -> {
+          if (d.participant().contains(entity)) {
             d.value(Keys.HEALTH_REGENERATED, v -> v + event.getAmount());
           }
         });

@@ -22,6 +22,7 @@ package me.moros.ares.command;
 import java.util.Collection;
 import java.util.List;
 
+import cloud.commandframework.arguments.standard.BooleanArgument;
 import cloud.commandframework.arguments.standard.EnumArgument;
 import cloud.commandframework.arguments.standard.IntegerArgument;
 import cloud.commandframework.arguments.standard.StringArgument;
@@ -32,10 +33,10 @@ import me.moros.ares.game.Game;
 import me.moros.ares.locale.Message;
 import me.moros.ares.model.battle.Battle;
 import me.moros.ares.model.battle.BattleRules;
-import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.model.tournament.SimpleTournament;
 import me.moros.ares.model.tournament.Tournament;
+import me.moros.ares.model.tournament.Tournament.Status;
 import me.moros.ares.registry.Registries;
 import me.moros.ares.util.TextUtil;
 import net.kyori.adventure.text.Component;
@@ -67,16 +68,13 @@ public class AresCommand {
       .meta(CommandMeta.DESCRIPTION, "Base command for Ares");
     var participantArg = manager.argumentBuilder(Participant.class, "participant");
     var tournamentArg = manager.argumentBuilder(Tournament.class, "tournament")
-      .asOptionalWithDefault("");
+      .asOptionalWithDefault("-");
     var rulesArg = manager.argumentBuilder(BattleRules.class, "rules")
       .asOptionalWithDefault("default");
 
     //noinspection ConstantConditions
     manager.command(builder.handler(c -> manager.help().queryCommands("", c.getSender())))
-      .command(builder.literal("confirm")
-        .meta(CommandMeta.DESCRIPTION, "Confirm a pending command")
-        .handler(manager.confirmationHandler())
-      ).command(builder.literal("reload")
+      .command(builder.literal("reload")
         .meta(CommandMeta.DESCRIPTION, "Reload the plugin")
         .permission(CommandPermissions.RELOAD)
         .handler(c -> onReload(c.getSender()))
@@ -88,29 +86,52 @@ public class AresCommand {
         .meta(CommandMeta.DESCRIPTION, "View all currently active tournaments")
         .permission(CommandPermissions.LIST)
         .handler(c -> onList(c.getSender()))
-      ).command(builder.literal("join", "j")
-        .meta(CommandMeta.DESCRIPTION, "Join an open tournaments")
+      ).command(builder.literal("join")
+        .meta(CommandMeta.DESCRIPTION, "Join an open tournament")
         .permission(CommandPermissions.JOIN)
         .senderType(Player.class)
         .argument(tournamentArg.build())
         .handler(c -> onJoin((Player) c.getSender(), c.get("tournament")))
-      ).command(builder.literal("create", "c", "new", "n")
+      ).command(builder.literal("add")
+        .meta(CommandMeta.DESCRIPTION, "Add a participant to an open tournament")
+        .permission(CommandPermissions.MANAGE)
+        .argument(participantArg.build())
+        .argument(tournamentArg.build())
+        .handler(c -> onAdd(c.getSender(), c.get("participant"), c.get("tournament")))
+      ).command(builder.literal("remove", "rm")
+        .meta(CommandMeta.DESCRIPTION, "Remove a participant from an open tournament")
+        .permission(CommandPermissions.MANAGE)
+        .argument(participantArg.build())
+        .argument(tournamentArg.build())
+        .handler(c -> onRemove(c.getSender(), c.get("participant"), c.get("tournament")))
+      ).command(builder.literal("create")
         .meta(CommandMeta.DESCRIPTION, "Create a new tournament")
-        .permission(CommandPermissions.CREATE)
+        .permission(CommandPermissions.MANAGE)
         .argument(StringArgument.single("name"))
         .handler(c -> onCreate(c.getSender(), c.get("name")))
-      ).command(builder.literal("start", "init", "s")
+      ).command(builder.literal("start")
         .meta(CommandMeta.DESCRIPTION, "Start an open tournament")
-        .permission(CommandPermissions.CREATE)
+        .permission(CommandPermissions.MANAGE)
         .argument(tournamentArg.build())
         .argument(rulesArg.build())
         .handler(c -> onStart(c.getSender(), c.get("tournament"), c.get("rules")))
+      ).command(builder.literal("auto")
+        .meta(CommandMeta.DESCRIPTION, "Set tournament autopilot")
+        .permission(CommandPermissions.MANAGE)
+        .argument(BooleanArgument.of("auto"))
+        .argument(tournamentArg.build())
+        .handler(c -> onAuto(c.getSender(), c.get("tournament"), c.get("auto")))
+      ).command(builder.literal("next")
+        .meta(CommandMeta.DESCRIPTION, "Proceed to the next battle in the specified tournament")
+        .permission(CommandPermissions.MANAGE)
+        .argument(tournamentArg.build())
+        .handler(c -> onNext(c.getSender(), c.get("tournament")))
       ).command(builder.literal("cancel")
         .meta(CommandMeta.DESCRIPTION, "Cancel the specified tournament")
-        .permission(CommandPermissions.CREATE)
+        .permission(CommandPermissions.MANAGE)
         .argument(tournamentArg.build())
         .handler(c -> onCancel(c.getSender(), c.get("tournament")))
-      ).command(builder.literal("duel", "d")
+      ).command(builder.literal("duel")
         .meta(CommandMeta.DESCRIPTION, "Duel another participant")
         .permission(CommandPermissions.DUEL)
         .senderType(Player.class)
@@ -131,11 +152,10 @@ public class AresCommand {
         .meta(CommandMeta.DESCRIPTION, "Spawn and register a test entity")
         .permission(CommandPermissions.DEBUG)
         .senderType(Player.class)
-        .argument(tournamentArg.asRequired().build())
         .argument(EnumArgument.of(EntityType.class, "type"))
         .argument(StringArgument.single("name"))
         .argument(IntegerArgument.optional("amount", 1))
-        .handler(c -> onDebug((Player) c.getSender(), c.get("tournament"), c.get("type"), c.get("name"), c.get("amount")))
+        .handler(c -> onDebug((Player) c.getSender(), c.get("type"), c.get("name"), c.get("amount")))
       ).command(builder.literal("help", "h")
         .meta(CommandMeta.DESCRIPTION, "View info about a command")
         .permission(CommandPermissions.HELP)
@@ -167,26 +187,38 @@ public class AresCommand {
     Message.TOURNAMENT_LIST_HEADER.send(user);
     for (Tournament tournament : tournaments) {
       Component entry = Component.text("> ", NamedTextColor.DARK_GRAY)
-        .append(tournament.displayName().decoration(TextDecoration.STRIKETHROUGH, !tournament.isOpen()));
+        .append(tournament.displayName().decoration(TextDecoration.STRIKETHROUGH, !tournament.canRegister()));
       user.sendMessage(entry);
     }
   }
 
   // TODO allow specifying team members?
   private void onJoin(Player player, Tournament tournament) {
-    if (!tournament.isOpen()) {
-      Message.TOURNAMENT_CLOSED.send(player, tournament.displayName());
-      return;
-    }
-    Participant participant = Participant.of(player);
-    if (tournament.hasParticipant(participant)) {
+    Participant participant = Registries.PARTICIPANTS.get(player);
+    if (tournament.contains(participant)) {
       participant.sendMessage(Message.TOURNAMENT_ALREADY_JOINED.build(tournament.displayName()));
       return;
     }
-    if (tournament.addParticipant(participant)) {
+    if (tournament.add(participant)) {
       participant.sendMessage(Message.TOURNAMENT_JOIN_SUCCESS.build(tournament.displayName()));
     } else {
       participant.sendMessage(Message.TOURNAMENT_JOIN_FAIL.build(tournament.displayName()));
+    }
+  }
+
+  private void onAdd(CommandSender user, Participant participant, Tournament tournament) {
+    if (tournament.add(participant)) {
+      user.sendMessage(Message.TOURNAMENT_ADD_SUCCESS.build(participant.name(), tournament.displayName()));
+    } else {
+      user.sendMessage(Message.TOURNAMENT_ADD_FAIL.build(participant.name(), tournament.displayName()));
+    }
+  }
+
+  private void onRemove(CommandSender user, Participant participant, Tournament tournament) {
+    if (tournament.remove(participant)) {
+      user.sendMessage(Message.TOURNAMENT_REMOVE_SUCCESS.build(participant.name(), tournament.displayName()));
+    } else {
+      user.sendMessage(Message.TOURNAMENT_REMOVE_FAIL.build(participant.name(), tournament.displayName()));
     }
   }
 
@@ -206,7 +238,7 @@ public class AresCommand {
   }
 
   private void onStart(CommandSender user, Tournament tournament, BattleRules rules) {
-    if (!tournament.isOpen()) {
+    if (!tournament.canRegister()) {
       Message.TOURNAMENT_CLOSED.send(user, tournament.displayName());
       return;
     }
@@ -218,6 +250,24 @@ public class AresCommand {
       }
     } else {
       Message.TOURNAMENT_START_FAIL.send(user, tournament.displayName());
+    }
+  }
+
+  private void onAuto(CommandSender user, Tournament tournament, boolean auto) {
+    if (tournament.auto(auto)) {
+      Message.TOURNAMENT_AUTO_ON.send(user, tournament.displayName());
+    } else {
+      Message.TOURNAMENT_AUTO_OFF.send(user, tournament.displayName());
+    }
+  }
+
+  private void onNext(CommandSender user, Tournament tournament) {
+    if (tournament.status() != Status.CLOSED) {
+      Message.TOURNAMENT_NOT_STARTED.send(user, tournament.displayName());
+      return;
+    }
+    if (!tournament.update()) {
+      Message.TOURNAMENT_PROGRESSING.send(user, tournament.displayName());
     }
   }
 
@@ -235,7 +285,7 @@ public class AresCommand {
     if (game.battleManager().inBattle(player)) {
       Message.SELF_IN_BATTLE.send(player);
       return;
-    } else if (other.members().anyMatch(game.battleManager()::inBattle)) {
+    } else if (other.stream().anyMatch(game.battleManager()::inBattle)) {
       Message.OTHER_IN_BATTLE.send(player, other.name());
       return;
     }
@@ -252,16 +302,11 @@ public class AresCommand {
       Message.LEAVE_BATTLE_FAIL.send(player);
       return;
     }
-    battle.forEachEntry((p, d) -> {
-      if (!p.contains(player)) {
-        d.score(BattleScore::increment);
-      }
-      Message.LEAVE_BATTLE_SUCCESS.send(p, player.getName());
-    });
-    battle.complete(game.battleManager());
+    game.battleManager().cancelBattle(battle, player);
+    Message.LEAVE_BATTLE_SUCCESS.send(battle.cache(), player.getName());
   }
 
-  private void onDebug(Player player, Tournament tournament, EntityType type, String name, int amount) {
+  private void onDebug(Player player, EntityType type, String name, int amount) {
     Block block = player.getTargetBlockExact(32);
     if (block == null) {
       Location origin = player.getEyeLocation();
@@ -277,7 +322,6 @@ public class AresCommand {
           entity.setCustomNameVisible(true);
           Participant participant = Participant.of(entity);
           Registries.PARTICIPANTS.register(participant);
-          tournament.addParticipant(participant);
         }
       }
       player.sendMessage(Component.text("Spawned " + counter + " " + type.name()));

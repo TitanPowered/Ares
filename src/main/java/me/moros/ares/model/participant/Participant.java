@@ -34,11 +34,13 @@ public interface Participant extends Identity, ForwardingAudience {
 
   boolean contains(LivingEntity entity);
 
-  default boolean isValid() {
-    return members().allMatch(Participant::isValidEntity);
-  }
+  Stream<LivingEntity> stream();
 
-  Stream<LivingEntity> members();
+  int size();
+
+  default boolean isValid() {
+    return size() > 0 && stream().allMatch(Participant::isValidEntity);
+  }
 
   static Participant dummy() {
     return DummyParticipant.INSTANCE;
@@ -52,8 +54,8 @@ public interface Participant extends Identity, ForwardingAudience {
     return of(Set.of(entity));
   }
 
-  static Participant of(Collection<LivingEntity> members) {
-    Set<LivingEntity> filteredMembers = members.stream().filter(Participant::isValidEntity).collect(Collectors.toSet());
-    return filteredMembers.isEmpty() ? Participant.dummy() : new ParticipantImpl(filteredMembers);
+  static Participant of(Collection<LivingEntity> entities) {
+    Set<LivingEntity> filtered = entities.stream().filter(Participant::isValidEntity).collect(Collectors.toSet());
+    return filtered.isEmpty() ? Participant.dummy() : new ParticipantImpl(filtered);
   }
 }

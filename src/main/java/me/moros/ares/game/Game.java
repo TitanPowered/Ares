@@ -32,7 +32,7 @@ public class Game {
   }
 
   private void update() {
-    Registries.TOURNAMENTS.stream().filter(t -> !t.isOpen()).toList().forEach(Tournament::update);
+    Registries.TOURNAMENTS.stream().filter(t -> !t.canRegister() && t.auto()).toList().forEach(Tournament::update);
   }
 
   public BattleManager battleManager() {

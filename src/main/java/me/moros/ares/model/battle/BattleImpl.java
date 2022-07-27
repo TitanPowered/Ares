@@ -20,82 +20,86 @@
 package me.moros.ares.model.battle;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.ValueReference;
+import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.model.victory.BattleVictory;
+import me.moros.ares.util.EntityUtil;
 import me.moros.ares.util.StepParser;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BattleImpl implements Battle {
-  private final Map<Participant, BattleData> parties;
+  private final Collection<BattleData> data;
+  private final CachedParticipants cache;
+  private final ValueReference<BattleData> topReference;
+
   private BattleVictory condition = x -> null;
   private BattleRules rules;
   private Stage stage = Stage.CREATED;
   private Consumer<Battle> consumer;
 
-  BattleImpl(Collection<Participant> parties) {
+  BattleImpl(Set<Participant> parties) {
     this(parties, BattleScore.ZERO);
   }
 
-  BattleImpl(Collection<Participant> parties, BattleScore startingScore) {
-    this.parties = parties.stream().collect(Collectors.toConcurrentMap(Function.identity(), p -> BattleData.create(startingScore)));
+  BattleImpl(Set<Participant> parties, BattleScore startingScore) {
+    this.cache = new CachedParticipants(parties);
+    topReference = new ValueReference<>();
+    data = cache.participants().stream().map(p -> new BattleData(p, startingScore, this::onScoreChange)).toList();
+    topReference.set(data.iterator().next());
   }
 
-  @Override
-  public Map<Participant, BattleScore> scores() {
-    return parties.entrySet().stream().collect(Collectors.toConcurrentMap(Entry::getKey, e -> e.getValue().score()));
-  }
-
-  @Override
-  public Stream<Participant> participants() {
-    return parties.keySet().stream();
-  }
-
-  @Override
-  public Entry<Participant, BattleScore> topEntry() {
-    return parties.entrySet().stream().max(Entry.comparingByValue())
-      .map(e -> Map.entry(e.getKey(), e.getValue().score())).orElseThrow();
-  }
-
-  @Override
-  public boolean start(BattleManager manager, BattleRules rules) {
-    if (stage != Stage.CREATED) {
-      return false;
+  private void onScoreChange(BattleData data) {
+    BattleData previous = topReference.get();
+    if (previous == null || data.compareTo(previous) > 0) {
+      topReference.set(data);
     }
-    this.condition = rules.condition();
-    this.rules = rules;
-    manager.addBattle(this);
-    runSteps(manager);
-    if (rules.duration() > 0) {
-      long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
-      manager.async(() -> complete(manager), delay);
+  }
+
+  @Override
+  public CachedParticipants cache() {
+    return cache;
+  }
+
+  @Override
+  public BattleData topEntry() {
+    return topReference.get();
+  }
+
+  @Override
+  public boolean start(BattleManager manager, BattleRules rules, @Nullable Consumer<Battle> consumer) {
+    if (stage == Stage.CREATED) {
+      this.condition = rules.condition();
+      this.rules = rules;
+      this.consumer = consumer;
+      manager.addBattle(this);
+      runSteps(manager);
+      if (rules.duration() > 0) {
+        long delay = 20 + (rules.duration() + rules.preparationTime()) / 50L;
+        manager.async(() -> complete(manager), delay);
+      }
+      return true;
     }
-    return true;
+    return false;
   }
 
   @Override
   public CompletableFuture<Void> runSteps(BattleManager manager) {
     stage = Stage.STARTING;
-    Collection<Participant> participants = List.copyOf(parties.keySet());
-    StepParser.parseAndExecute(this.rules.steps(), participants);
-    return manager.gaia().map(g -> g.teleportParticipants(participants, rules.arena()))
+    return manager.gaia().map(g -> g.teleportParticipants(cache, rules.arena()))
       .orElseGet(() -> CompletableFuture.completedFuture(null))
       .thenRun(() -> runPreparation(manager));
   }
 
   private void runPreparation(BattleManager manager) {
+    StepParser.parseAndExecute(rules.steps(), cache);
+    cache.entities().forEach(EntityUtil::heal);
     if (rules.preparationTime() > 0) {
       long delay = rules.preparationTime() / 50L;
       manager.async(this::mainStage, delay);
@@ -111,23 +115,18 @@ public class BattleImpl implements Battle {
   }
 
   @Override
-  public Map<Participant, BattleData> complete(BattleManager manager) {
+  public Collection<BattleData> complete(BattleManager manager) {
     if (stage != Stage.COMPLETED) {
       stage = Stage.COMPLETED;
       manager.clearBattle(this);
       if (this.rules != null) {
-        StepParser.parseAndExecute(this.rules.cleanupSteps(), List.copyOf(parties.keySet()));
+        StepParser.parseAndExecute(this.rules.cleanupSteps(), cache);
       }
       if (consumer != null) {
         consumer.accept(this);
       }
     }
-    return Map.copyOf(parties);
-  }
-
-  @Override
-  public void onComplete(@Nullable Consumer<Battle> consumer) {
-    this.consumer = consumer;
+    return data;
   }
 
   @Override
@@ -141,12 +140,7 @@ public class BattleImpl implements Battle {
   }
 
   @Override
-  public void forEachEntry(BiConsumer<Participant, BattleData> consumer) {
-    parties.forEach(consumer);
-  }
-
-  @Override
-  public Iterator<Participant> iterator() {
-    return Collections.unmodifiableSet(parties.keySet()).iterator();
+  public Iterator<BattleData> iterator() {
+    return data.iterator();
   }
 }

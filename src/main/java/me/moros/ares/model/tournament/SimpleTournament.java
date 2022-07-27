@@ -21,7 +21,6 @@ package me.moros.ares.model.tournament;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -34,22 +33,14 @@ import java.util.stream.Stream;
 import me.moros.ares.game.BattleManager;
 import me.moros.ares.locale.Message;
 import me.moros.ares.model.battle.Battle;
-import me.moros.ares.model.battle.Battle.Stage;
 import me.moros.ares.model.battle.BattleRules;
 import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
-import static net.kyori.adventure.text.Component.join;
-import static net.kyori.adventure.text.Component.text;
-
+// TODO tournament auto pilot separate
 public class SimpleTournament implements Tournament {
   private final String name;
   private final BattleManager manager;
@@ -57,10 +48,12 @@ public class SimpleTournament implements Tournament {
   private final Deque<Round> rounds;
   private final long delay;
 
+  private Status status = Status.OPEN;
   private Battle currentBattle;
   private BattleRules rules;
-  private long nextBattleTime;
-  private boolean open = true;
+
+  private long nextBattleTime = 0;
+  private boolean auto = false;
 
   public SimpleTournament(String name, long delay, BattleManager manager) {
     this.name = name;
@@ -76,75 +69,83 @@ public class SimpleTournament implements Tournament {
   }
 
   @Override
-  public boolean isOpen() {
-    return open;
+  public Status status() {
+    return status;
+  }
+
+  @Override
+  public boolean auto() {
+    return auto;
+  }
+
+  @Override
+  public boolean auto(boolean value) {
+    auto = value;
+    nextBattleTime = 0;
+    return auto;
   }
 
   @Override
   public boolean start(BattleRules rules) {
-    if (open && size() > 1) {
-      open = false;
+    if (status == Status.OPEN && size() > 1) {
+      status = Status.CLOSED;
       this.rules = rules;
       generateRound();
-      nextBattle();
       return true;
     }
     return false;
   }
 
   @Override
-  public void update() {
-    if (System.currentTimeMillis() < nextBattleTime) {
-      return;
+  public boolean update() {
+    if (status == Status.CLOSED && currentBattle != null && System.currentTimeMillis() > nextBattleTime) {
+      return currentBattle.start(manager, rules, this::onComplete);
     }
-    if (currentBattle != null) {
-      switch (currentBattle.stage()) {
-        case CREATED -> startBattle();
-        case COMPLETED -> nextBattle();
-      }
-    }
+    return false;
   }
 
-  private void startBattle() {
-    currentBattle.start(manager, rules);
-    if (currentBattle.stage() == Stage.COMPLETED) {
-      addWinnerScore(currentBattle);
-    } else {
-      currentBattle.onComplete(this::addWinnerScore);
-    }
-  }
-
-  private void addWinnerScore(Battle battle) {
+  private void onComplete(Battle battle) {
     Participant winner = battle.testVictory();
     if (winner != null) {
       scoreMap.computeIfPresent(winner, (p, s) -> s.increment());
     }
+    nextBattle();
   }
 
   private void nextBattle() {
     Round round = rounds.peekLast();
-    if (round != null && round.iterator().hasNext()) {
-      currentBattle = round.iterator().next();
+    if (round != null && round.hasNext()) {
+      currentBattle = round.next();
     } else {
       generateRound();
     }
-    nextBattleTime = System.currentTimeMillis() + delay;
+    if (auto) {
+      nextBattleTime = System.currentTimeMillis() + delay;
+    }
   }
 
   private void generateRound() {
     Round lastRound = rounds.peekLast();
-    List<Participant> randomized = new ArrayList<>(scoreMap.keySet());
-    Collections.shuffle(randomized);
-    Round nextRound = lastRound == null ? new Round(randomized, rules.teamAmount()) : lastRound.nextRound(rules.teamAmount());
-    if (nextRound != null) {
-      rounds.addLast(nextRound);
+    if (lastRound == null) {
+      List<Participant> randomized = new ArrayList<>(scoreMap.keySet());
+      Collections.shuffle(randomized);
+      lastRound = Round.of(randomized, rules.teamAmount());
     } else {
-      finish();
+      lastRound = lastRound.nextRound();
+    }
+    if (lastRound != null) {
+      rounds.addLast(lastRound);
+      nextBattle();
+    } else {
+      finish(true);
     }
   }
 
   @Override
   public boolean finish(boolean sendFeedback) {
+    if (status == Status.COMPLETED) {
+      return false;
+    }
     if (currentBattle != null) {
       currentBattle.complete(manager);
     }
@@ -163,6 +164,7 @@ public class SimpleTournament implements Tournament {
         Bukkit.getConsoleSender().sendMessage(text);
       }
     }
+    status = Status.COMPLETED;
     return true;
   }
 
@@ -171,17 +173,17 @@ public class SimpleTournament implements Tournament {
   }
 
   @Override
-  public boolean addParticipant(Participant participant) {
-    return open && scoreMap.putIfAbsent(participant, BattleScore.ZERO) == null;
+  public boolean add(Participant participant) {
+    return canRegister() && scoreMap.putIfAbsent(participant, BattleScore.ZERO) == null;
   }
 
   @Override
-  public boolean removeParticipant(Participant participant) {
-    return open && scoreMap.remove(participant) != null;
+  public boolean remove(Participant participant) {
+    return canRegister() && scoreMap.remove(participant) != null;
   }
 
   @Override
-  public boolean hasParticipant(Participant participant) {
+  public boolean contains(Participant participant) {
     return scoreMap.containsKey(participant);
   }
 
@@ -191,75 +193,12 @@ public class SimpleTournament implements Tournament {
   }
 
   @Override
-  public boolean addBattle(Battle battle) {
-    Round lastRound = rounds.peekLast();
-    if (lastRound != null) {
-      return lastRound.battles.add(battle);
-    }
-    return false;
-  }
-
-  @Override
-  public Collection<Component> details() {
-    Collection<Component> components = new ArrayList<>();
-    components.add(displayName());
-    int roundCounter = 0;
-    for (Round round : rounds) {
-      ++roundCounter;
-      components.add(Component.text("Round " + roundCounter, NamedTextColor.GOLD));
-      for (Battle battle : round.battles) {
-        BattleScore top = battle.topEntry().getValue();
-        boolean bold = top.compareTo(BattleScore.ZERO) > 0;
-        Collection<Component> participants = new ArrayList<>();
-        battle.forEachEntry((p, d) -> {
-          Style style = Style.style().color(battle.stage().color())
-            .decoration(TextDecoration.BOLD, bold && d.score().compareTo(top) >= 0).build();
-          participants.add(text(p.name(), style));
-        });
-        components.add(join(JoinConfiguration.separator(text(" vs ")), participants));
-      }
-      components.add(Component.newline());
-    }
-    return components;
-  }
-
-  @Override
   public int size() {
     return scoreMap.size();
   }
 
-  private static final class Round implements Iterable<Battle> {
-    private final Collection<Battle> battles;
-    private final Iterator<Battle> iterator;
-
-    private Round(Collection<Participant> input, int participantsPerBattle) {
-      int size = input.size();
-      List<Participant> randomized = new ArrayList<>(input);
-      battles = new ArrayList<>();
-      for (int i = 0; i < size; i += participantsPerBattle) {
-        int end = Math.min(size, i + participantsPerBattle);
-        battles.add(Battle.createBattle(randomized.subList(i, end)));
-      }
-      iterator = battles.iterator();
-    }
-
-    public Stream<Battle> stream() {
-      return battles.stream();
-    }
-
-    public @Nullable Round nextRound(int participantsPerBattle) {
-      if (stream().allMatch(b -> b.stage() == Stage.COMPLETED)) {
-        Collection<Participant> input = stream().map(b -> b.topEntry().getKey()).toList();
-        if (input.size() > 1) {
-          return new Round(input, participantsPerBattle);
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public Iterator<Battle> iterator() {
-      return iterator;
-    }
+  @Override
+  public Iterator<Round> iterator() {
+    return Collections.unmodifiableCollection(rounds).iterator();
   }
 }
