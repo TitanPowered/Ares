@@ -57,7 +57,13 @@ public class ParticipantListener implements Listener {
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
   public void onPlayerLeave(PlayerQuitEvent event) {
-    Registries.PARTICIPANTS.invalidate(event.getPlayer().getUniqueId());
+    UUID uuid = event.getPlayer().getUniqueId();
+    if (Registries.PARTICIPANTS.invalidate(uuid)) {
+      Battle battle = game.battleManager().battle(uuid);
+      if (battle != null) {
+        game.battleManager().cancelBattle(battle, event.getPlayer());
+      }
+    }
   }
 
   @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)

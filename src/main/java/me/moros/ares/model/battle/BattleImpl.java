@@ -78,6 +78,9 @@ public class BattleImpl implements Battle {
       this.condition = rules.condition();
       this.rules = rules;
       this.consumer = consumer;
+      if (!checkValid()) {
+        return true;
+      }
       manager.addBattle(this);
       runSteps(manager);
       if (rules.duration() > 0) {
@@ -87,6 +90,21 @@ public class BattleImpl implements Battle {
       return true;
     }
     return false;
+  }
+
+  private boolean checkValid() {
+    Collection<BattleData> valid = data.stream().filter(bd -> bd.participant().isValid()).toList();
+    int size = valid.size();
+    if (size < data.size() && size == 1) {
+      BattleData defaultData = valid.iterator().next();
+      defaultData.score(BattleScore::increment);
+      stage = Stage.COMPLETED;
+      if (this.consumer != null) {
+        this.consumer.accept(this);
+      }
+      return false;
+    }
+    return true;
   }
 
   @Override
