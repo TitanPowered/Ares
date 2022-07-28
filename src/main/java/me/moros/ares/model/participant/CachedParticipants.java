@@ -26,6 +26,7 @@ import java.util.Set;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.audience.ForwardingAudience;
 import org.bukkit.entity.LivingEntity;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 public class CachedParticipants implements ForwardingAudience {
   private final Collection<Participant> participants;
@@ -53,7 +54,7 @@ public class CachedParticipants implements ForwardingAudience {
   }
 
   @Override
-  public Iterable<? extends Audience> audiences() {
+  public @NonNull Iterable<? extends Audience> audiences() {
     return participants;
   }
 }

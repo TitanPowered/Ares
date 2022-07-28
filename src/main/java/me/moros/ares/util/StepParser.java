@@ -20,13 +20,15 @@
 package me.moros.ares.util;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import me.moros.ares.model.participant.CachedParticipants;
-import me.moros.ares.model.participant.Participant;
+import me.moros.ares.model.Replacement;
+import me.moros.ares.model.Replacer;
+import me.moros.ares.model.Token;
+import me.moros.ares.model.battle.Battle;
+import me.moros.ares.model.battle.BattleData;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -37,12 +39,13 @@ import org.bukkit.entity.LivingEntity;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class StepParser {
-  private static final Pattern PLACEHOLDERS = Pattern.compile("<(name|uuid)>");
-
   private StepParser() {
   }
 
-  public static void parseAndExecute(Collection<String> steps, CachedParticipants cache) {
+  public static void parseAndExecute(Collection<String> steps, Battle battle, Collection<BattleData> data) {
+    BattleData top = battle.topEntry();
+    Replacer<BattleData> replacer = replacer(top, data);
+    Replacer<LivingEntity> replacer2 = replacerEntity(top, battle.cache().entities());
     for (String step : steps) {
       String[] arr = step.split(":", 2);
       if (arr.length != 2) {
@@ -53,46 +56,19 @@ public final class StepParser {
         return;
       }
       switch (arr[0].toLowerCase(Locale.ROOT)) {
-        case "msg" -> msg(cache, replace(cache.iterator(), value));
-        case "broadcast" -> msg(Bukkit.getServer(), replace(cache.iterator(), value));
-        case "cmd" -> cache.entities().forEach(e -> dynamicCommand(e, value, false));
-        case "console" -> cache.entities().forEach(e -> dynamicCommand(e, value, true));
+        case "msg" -> msg(battle, replacer.replaceAll(value));
+        case "broadcast" -> msg(Bukkit.getServer(), replacer.replaceAll(value));
+        case "cmd" -> battle.cache().entities().forEach(e -> dynamicCommand(e, value, replacer2, false));
+        case "console" -> battle.cache().entities().forEach(e -> dynamicCommand(e, value, replacer2, true));
         case "global" -> command(value);
         case "teleport" -> {
           Location loc = location(value.split("\\s+"));
           if (loc != null) {
-            cache.entities().forEach(e -> teleport(e, loc.clone()));
+            battle.cache().entities().forEach(e -> teleport(e, loc.clone()));
           }
         }
       }
     }
-  }
-
-  public static String replace(Iterator<Participant> iterator, String value) {
-    Matcher matcher = PLACEHOLDERS.matcher(value);
-    int length = value.length();
-    int lastIndex = 0;
-    StringBuilder output = new StringBuilder();
-    while (matcher.find()) {
-      if (!iterator.hasNext()) {
-        break;
-      }
-      String token = matcher.group();
-      output.append(value, lastIndex, matcher.start()).append(replace(iterator.next(), token));
-      lastIndex = matcher.end();
-    }
-    if (lastIndex < length) {
-      output.append(value, lastIndex, length);
-    }
-    return output.toString();
-  }
-
-  private static String replace(Participant p, String token) {
-    return token.equalsIgnoreCase("<uuid>") ? p.uuid().toString() : p.name();
-  }
-
-  private static String replace(LivingEntity e, String token) {
-    return token.equalsIgnoreCase("<uuid>") ? e.getUniqueId().toString() : e.getName();
   }
 
   private static void msg(Audience audience, String msg) {
@@ -100,9 +76,9 @@ public final class StepParser {
     audience.sendMessage(component);
   }
 
-  private static void dynamicCommand(LivingEntity entity, String cmd, boolean console) {
+  private static void dynamicCommand(LivingEntity entity, String cmd, Replacer<LivingEntity> replacer, boolean console) {
     CommandSender sender = console ? Bukkit.getConsoleSender() : entity;
-    Bukkit.dispatchCommand(sender, PLACEHOLDERS.matcher(cmd).replaceAll(r -> replace(entity, r.group())));
+    Bukkit.dispatchCommand(sender, replacer.apply(entity, cmd));
   }
 
   private static void command(String cmd) {
@@ -135,5 +111,34 @@ public final class StepParser {
       }
     }
     return new Location(null, coords[0], coords[1], coords[2], dir[0], dir[1]);
+  }
+
+  private static Replacer<BattleData> replacer(BattleData top, Collection<BattleData> data) {
+    String topName = top.participant().name();
+    String topUuid = top.participant().uuid().toString();
+    String topScore = top.score().toString();
+    return new Replacer<>(Map.ofEntries(
+      entry(Token.NAME, d -> d.participant().name()),
+      entry(Token.UUID, d -> d.participant().uuid().toString()),
+      entry(Token.SCORE, d -> d.score().toString()),
+      entry(Token.WINNER_NAME, d -> topName),
+      entry(Token.WINNER_UUID, d -> topUuid),
+      entry(Token.WINNER_SCORE, d -> topScore)
+    ), data);
+  }
+
+  private static Replacer<LivingEntity> replacerEntity(BattleData top, Collection<LivingEntity> data) {
+    String topName = top.participant().name();
+    String topUuid = top.participant().uuid().toString();
+    return new Replacer<>(Map.ofEntries(
+      entry(Token.NAME, LivingEntity::getName),
+      entry(Token.UUID, e -> e.getUniqueId().toString()),
+      entry(Token.WINNER_NAME, e -> topName),
+      entry(Token.WINNER_UUID, e -> topUuid)
+    ), data);
+  }
+
+  private static <T> Entry<String, Replacement<T>> entry(Token token, Replacement<T> replacement) {
+    return Map.entry(token.value(), replacement);
   }
 }

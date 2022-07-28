@@ -112,8 +112,8 @@ public final class BattleRules {
     private long duration = 0;
     private long preparationTime = 3000;
     private String arena = "pvp";
-    private List<String> steps = List.of("msg:start");
-    private List<String> cleanupSteps = List.of("msg:finish");
+    private List<String> steps = List.of("broadcast:<hover:show_text:\"<name>: <score><newline><name>: <score>\"><aqua>Match starting between <name> and <name>!</aqua></hover>");
+    private List<String> cleanupSteps = List.of("broadcast:<hover:show_text:\"<name>: <score><newline><name>: <score>\"><bold><winner_name> won this duel!</aqua></hover>");
 
     private BattleRulesBuilder(String name) {
       this.name = name;

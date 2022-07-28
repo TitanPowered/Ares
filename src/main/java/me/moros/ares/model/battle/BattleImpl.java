@@ -98,7 +98,7 @@ public class BattleImpl implements Battle {
   }
 
   private void runPreparation(BattleManager manager) {
-    StepParser.parseAndExecute(rules.steps(), cache);
+    StepParser.parseAndExecute(rules.steps(), this, data);
     cache.entities().forEach(EntityUtil::heal);
     if (rules.preparationTime() > 0) {
       long delay = rules.preparationTime() / 50L;
@@ -120,7 +120,7 @@ public class BattleImpl implements Battle {
       stage = Stage.COMPLETED;
       manager.clearBattle(this);
       if (this.rules != null) {
-        StepParser.parseAndExecute(this.rules.cleanupSteps(), cache);
+        StepParser.parseAndExecute(this.rules.cleanupSteps(), this, data);
       }
       if (consumer != null) {
         consumer.accept(this);

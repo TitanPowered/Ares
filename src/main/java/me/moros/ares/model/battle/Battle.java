@@ -29,14 +29,17 @@ import java.util.function.Predicate;
 import me.moros.ares.game.BattleManager;
 import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.ares.model.participant.Participant;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.audience.ForwardingAudience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.entity.LivingEntity;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public interface Battle extends Iterable<BattleData> {
+public interface Battle extends Iterable<BattleData>, ForwardingAudience {
   JoinConfiguration SEP = JoinConfiguration.separator(Component.text(" vs "));
 
   CachedParticipants cache();
@@ -82,6 +85,11 @@ public interface Battle extends Iterable<BattleData> {
 
   private TextColor color(boolean top) {
     return top ? NamedTextColor.GREEN : NamedTextColor.RED;
+  }
+
+  @Override
+  default @NonNull Iterable<? extends Audience> audiences() {
+    return cache().audiences();
   }
 
   enum Stage {

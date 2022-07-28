@@ -30,7 +30,6 @@ import me.moros.ares.model.battle.BattleScore;
 import me.moros.ares.model.battle.BattleStat.Keys;
 import me.moros.ares.model.participant.Participant;
 import me.moros.ares.registry.Registries;
-import net.kyori.adventure.text.Component;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -104,14 +103,6 @@ public class ParticipantListener implements Listener {
         }
       });
       event.setCancelled(true);
-      Component deathMessage;
-      if (killer != null) {
-        deathMessage = killer.name().append(Component.text(" has killed "))
-          .append(entity.name()).append(Component.text("."));
-      } else {
-        deathMessage = entity.name().append(Component.text(" has died."));
-      }
-      entity.getServer().sendMessage(deathMessage);
       if (battle.testVictory() != null) {
         battle.complete(game.battleManager());
       } else {
