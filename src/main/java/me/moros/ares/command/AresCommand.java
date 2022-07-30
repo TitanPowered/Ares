@@ -20,7 +20,8 @@
 package me.moros.ares.command;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import cloud.commandframework.arguments.standard.BooleanArgument;
 import cloud.commandframework.arguments.standard.EnumArgument;
@@ -131,6 +132,13 @@ public class AresCommand {
         .permission(CommandPermissions.MANAGE)
         .argument(tournamentArg.build())
         .handler(c -> onCancel(c.getSender(), c.get("tournament")))
+      ).command(builder.literal("match")
+        .meta(CommandMeta.DESCRIPTION, "Create a duel between two participants")
+        .permission(CommandPermissions.MANAGE)
+        .argument(participantArg.build())
+        .argument(manager.argumentBuilder(Participant.class, "participant2"))
+        .argument(rulesArg.build())
+        .handler(c -> onMatch(c.getSender(), c.get("participant"), c.get("participant2"), c.get("rules")))
       ).command(builder.literal("duel")
         .meta(CommandMeta.DESCRIPTION, "Duel another participant")
         .permission(CommandPermissions.DUEL)
@@ -276,6 +284,17 @@ public class AresCommand {
     Message.TOURNAMENT_CANCEL.send(user, tournament.displayName());
   }
 
+  private void onMatch(CommandSender user, Participant first, Participant second, BattleRules rules) {
+    if (!first.equals(second) && first.isValid() && second.isValid()) {
+      boolean valid = Stream.concat(first.stream(), second.stream()).map(LivingEntity::getUniqueId)
+        .noneMatch(game.battleManager()::inBattle);
+      if (valid && Battle.createBattle(Set.of(first, second)).start(game.battleManager(), rules)) {
+        return;
+      }
+    }
+    Message.BATTLE_ERROR.send(user);
+  }
+
   // TODO require duel accept
   private void onDuel(Player player, Participant other, BattleRules rules) {
     if (other.contains(player)) {
@@ -289,7 +308,7 @@ public class AresCommand {
       Message.OTHER_IN_BATTLE.send(player, other.name());
       return;
     }
-    Battle.createBattle(List.of(Participant.of(player), other)).start(game.battleManager(), rules);
+    Battle.createBattle(Set.of(Registries.PARTICIPANTS.get(player), other)).start(game.battleManager(), rules);
   }
 
   private void onDetails(CommandSender user, Tournament tournament) {

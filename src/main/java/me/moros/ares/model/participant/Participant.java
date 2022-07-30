@@ -20,10 +20,12 @@
 package me.moros.ares.model.participant;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import me.moros.ares.model.ValueReference;
 import net.kyori.adventure.audience.ForwardingAudience;
 import net.kyori.adventure.identity.Identity;
 import org.bukkit.entity.LivingEntity;
@@ -57,5 +59,24 @@ public interface Participant extends Identity, ForwardingAudience {
   static Participant of(Collection<LivingEntity> entities) {
     Set<LivingEntity> filtered = entities.stream().filter(Participant::isValidEntity).collect(Collectors.toSet());
     return filtered.isEmpty() ? Participant.dummy() : new ParticipantImpl(filtered);
+  }
+
+  static Set<Participant> unique(Collection<Participant> participants, ValueReference<Participant> error) {
+    Set<LivingEntity> entities = new HashSet<>();
+    Set<Participant> unique = new HashSet<>();
+    int totalSize = 0;
+    for (Participant participant : participants) {
+      if (participant.isValid()) {
+        totalSize += participant.size();
+        participant.stream().forEach(entities::add);
+        if (entities.size() == totalSize) {
+          unique.add(participant);
+          continue;
+        }
+      }
+      error.set(participant);
+      break;
+    }
+    return unique;
   }
 }

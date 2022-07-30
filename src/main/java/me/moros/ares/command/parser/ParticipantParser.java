@@ -45,8 +45,7 @@ public final class ParticipantParser implements ArgumentParser<CommandSender, Pa
     if (player != null) {
       participant = Registries.PARTICIPANTS.get(player.getUniqueId());
     } else {
-      participant = Registries.PARTICIPANTS.stream().filter(p -> input.equalsIgnoreCase(p.name()))
-        .findFirst().orElse(null);
+      participant = Registries.PARTICIPANTS.get(input);
     }
     if (participant != null) {
       return ArgumentParseResult.success(participant);

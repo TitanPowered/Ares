@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import me.moros.ares.game.BattleManager;
+import me.moros.ares.model.ValueReference;
 import me.moros.ares.model.participant.CachedParticipants;
 import me.moros.ares.model.participant.Participant;
 import net.kyori.adventure.audience.Audience;
@@ -35,7 +36,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.entity.LivingEntity;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -61,18 +61,19 @@ public interface Battle extends Iterable<BattleData>, ForwardingAudience {
   @Nullable Participant testVictory();
 
   static Battle createBattle(Collection<Participant> parties) {
-    Set<Participant> set = Set.copyOf(parties);
-    if (set.size() < 1) {
-      throw new RuntimeException("Can't create a battle with no participants!");
+    return createBattle(parties, new ValueReference<>());
+  }
+
+  static Battle createBattle(Collection<Participant> parties, ValueReference<Participant> error) {
+    Set<Participant> unique = Participant.unique(parties, error);
+    int size = unique.size();
+    if (size < 1) {
+      throw new RuntimeException("A battle requires at least 2 unique participants! Provided " + size);
     }
-    if (set.stream().allMatch(Participant::isValid)) {
-      Collection<LivingEntity> col = set.stream().flatMap(Participant::stream).toList();
-      int unique = Set.copyOf(col).size();
-      if (unique > 1 && col.size() == unique) {
-        return new BattleImpl(set);
-      }
+    if (size == 1) {
+      new DefaultedBattle(unique.iterator().next());
     }
-    return new DefaultedBattle(set.iterator().next());
+    return new BattleImpl(unique);
   }
 
   default Component details() {

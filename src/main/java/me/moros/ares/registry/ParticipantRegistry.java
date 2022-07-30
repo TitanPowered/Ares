@@ -21,6 +21,7 @@ package me.moros.ares.registry;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -33,21 +34,38 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class ParticipantRegistry implements Registry<Participant> {
   private final Map<UUID, Participant> participants;
+  private final Map<String, UUID> names;
 
   ParticipantRegistry() {
     participants = new ConcurrentHashMap<>();
+    names = new ConcurrentHashMap<>();
   }
 
   public boolean invalidate(UUID uuid) {
-    return participants.remove(uuid) != null;
+    Participant p = participants.remove(uuid);
+    if (p != null) {
+      names.remove(p.name().toLowerCase(Locale.ROOT));
+      return true;
+    }
+    return false;
   }
 
   public boolean register(Participant participant) {
-    return participant.isValid() && participants.putIfAbsent(participant.uuid(), participant) == null;
+    if (!participant.isValid() || participants.containsKey(participant.uuid())) {
+      return false;
+    }
+    participants.put(participant.uuid(), participant);
+    names.put(participant.name().toLowerCase(Locale.ROOT), participant.uuid());
+    return true;
   }
 
   public @Nullable Participant get(UUID uuid) {
     return participants.get(uuid);
+  }
+
+  public @Nullable Participant get(String name) {
+    UUID uuid = names.get(name.toLowerCase(Locale.ROOT));
+    return uuid == null ? null : participants.get(uuid);
   }
 
   public Participant get(Player player) {

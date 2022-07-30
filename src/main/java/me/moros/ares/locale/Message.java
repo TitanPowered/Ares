@@ -89,6 +89,7 @@ public interface Message {
   Args3<Component, Integer, String> TOURNAMENT_RESULT = (tournament, position, score) -> translatable("ares.command.tournament.result", AQUA)
     .args(tournament, text(position, DARK_AQUA), text(score, GOLD));
 
+  Args0 BATTLE_ERROR = () -> translatable("ares.command.duel.battle.error", RED);
   Args0 SELF_BATTLE = () -> translatable("ares.command.duel.battle.self", YELLOW);
   Args0 SELF_IN_BATTLE = () -> translatable("ares.command.duel.in-battle.self", YELLOW);
   Args1<String> OTHER_IN_BATTLE = name -> translatable("ares.command.duel.in-battle.other", YELLOW)

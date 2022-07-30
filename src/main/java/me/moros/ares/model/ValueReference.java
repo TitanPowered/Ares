@@ -29,4 +29,8 @@ public final class ValueReference<T> {
   public void set(T value) {
     this.value = value;
   }
+
+  public boolean isEmpty() {
+    return value == null;
+  }
 }
